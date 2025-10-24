@@ -68,7 +68,7 @@ This will create an admin with:
 - **Brand** - Laptop brands
 - **Category** - Product categories
 - **Order** - Customer orders
-- **Stock** - Inventory management
+- **Stock** - stock management
 
 ## Features Implemented
 
@@ -85,7 +85,7 @@ This will create an admin with:
 
 1. **Add Products** - Implement product management
 2. **Order System** - Build order processing
-3. **Inventory Management** - Stock tracking
+3. **stock Management** - Stock tracking
 4. **Customer Portal** - Public-facing store
 5. **Payment Integration** - Payment processing
 6. **Email Notifications** - Order confirmations

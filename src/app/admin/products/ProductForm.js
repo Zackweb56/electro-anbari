@@ -279,7 +279,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                 <div className="space-y-2">
                 <Label htmlFor="brand">Marque *</Label>
                 <Select value={formData.brand} onValueChange={(value) => setFormData(prev => ({ ...prev, brand: value }))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                     <SelectValue placeholder="Sélectionnez une marque" />
                     </SelectTrigger>
                     <SelectContent>
@@ -295,7 +295,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                 <div className="space-y-2">
                 <Label htmlFor="category">Catégorie *</Label>
                 <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                     <SelectValue placeholder="Sélectionnez une catégorie" />
                     </SelectTrigger>
                     <SelectContent>

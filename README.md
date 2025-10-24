@@ -7,7 +7,7 @@ A professional Next.js application for managing a laptop store with MongoDB Atla
 - 🔐 **Admin Authentication** - Secure login system for store administrators
 - 📊 **Admin Dashboard** - Comprehensive dashboard with statistics and quick actions
 - 🛒 **Product Management** - Add, edit, and manage laptop products
-- 📦 **Inventory Management** - Track stock levels and low stock alerts
+- 📦 **stock Management** - Track stock levels and low stock alerts
 - 📈 **Order Management** - Process and track customer orders
 - 🎨 **Modern UI** - Beautiful, responsive design with Tailwind CSS
 - 🚀 **Next.js 15** - Latest Next.js features with App Router

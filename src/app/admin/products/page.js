@@ -25,6 +25,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import ProductForm from './ProductForm'; // We'll create this next
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from '@/components/ui/sheet';
+import { DollarSignIcon, Info, ClockIcon, TagsIcon, SettingsIcon, ListIcon, FileTextIcon } from 'lucide-react'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -33,6 +42,7 @@ export default function ProductsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [viewSheetOpen, setViewSheetOpen] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -152,6 +162,11 @@ export default function ProductsPage() {
   const openDeleteDialog = (product) => {
     setSelectedProduct(product);
     setDeleteDialogOpen(true);
+  };
+
+  const openViewSheet = (product) => {
+    setSelectedProduct(product);
+    setViewSheetOpen(true);
   };
 
   // DataTable columns configuration
@@ -286,6 +301,7 @@ export default function ProductsPage() {
                 searchKey="name"
                 onEdit={openEditDialog}
                 onDelete={openDeleteDialog}
+                onView={openViewSheet}
               />
             ) : (
               <div className="text-center py-12">
@@ -346,6 +362,206 @@ export default function ProductsPage() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+
+      {/* Product Details Sheet */}
+      <Sheet open={viewSheetOpen} onOpenChange={setViewSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Détails du Produit</SheetTitle>
+            <SheetDescription>Informations complètes sur le produit sélectionné</SheetDescription>
+          </SheetHeader>
+
+          {selectedProduct ? (
+            <div className="p-6 space-y-8">
+              {/* Main Info */}
+              <div className="flex flex-col sm:flex-row items-start gap-6">
+                {selectedProduct.mainImage ? (
+                  <img
+                    src={selectedProduct.mainImage}
+                    alt={selectedProduct.name}
+                    className="w-40 h-40 rounded-md object-cover border"
+                  />
+                ) : (
+                  <div className="w-40 h-40 bg-muted flex items-center justify-center rounded-md">
+                    <PackageIcon className="w-10 h-10 text-muted-foreground" />
+                  </div>
+                )}
+
+                <div className="flex-1 space-y-2">
+                  <h3 className="text-2xl font-semibold">{selectedProduct.name}</h3>
+                  <div>
+                    <p className="text-muted-foreground text-xs">SKU</p>
+                    <p className="font-medium">{selectedProduct.sku || '—'}</p>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <Badge variant={selectedProduct.isActive ? 'default' : 'secondary'}>
+                      {selectedProduct.isActive ? 'Actif' : 'Inactif'}
+                    </Badge>
+                    {selectedProduct.isFeatured && (
+                      <Badge variant="outline" className="border-primary text-primary">
+                        Produit Vedette
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Info */}
+              <section>
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <DollarSignIcon className="w-4 h-4 text-primary" /> Prix & Réduction
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Prix</p>
+                    <p className="font-medium">{selectedProduct.price} MAD</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Prix Comparatif</p>
+                    <p className="font-medium">
+                      {selectedProduct.comparePrice ? `${selectedProduct.comparePrice} MAD` : '—'}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Brand & Category */}
+              <section>
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <TagsIcon className="w-4 h-4 text-primary" /> Marque & Catégorie
+                </h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Marque</p>
+                    <p className="font-medium">{selectedProduct.brand?.name || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Catégorie</p>
+                    <p className="font-medium">{selectedProduct.category?.name || '—'}</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Specifications */}
+              {selectedProduct.specifications && Object.keys(selectedProduct.specifications).length > 0 && (
+                <section>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <SettingsIcon className="w-4 h-4 text-primary" /> Spécifications Techniques
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Processeur</p>
+                      <p className="font-medium">{selectedProduct.specifications.processor || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">RAM</p>
+                      <p className="font-medium">{selectedProduct.specifications.ram || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Stockage</p>
+                      <p className="font-medium">{selectedProduct.specifications.storage || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Écran</p>
+                      <p className="font-medium">{selectedProduct.specifications.display || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Graphiques</p>
+                      <p className="font-medium">{selectedProduct.specifications.graphics || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Système d’exploitation</p>
+                      <p className="font-medium">{selectedProduct.specifications.operatingSystem || '—'}</p>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Features */}
+              {selectedProduct.features && selectedProduct.features.length > 0 && (
+                <section>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <ListIcon className="w-4 h-4 text-primary" /> Fonctionnalités
+                  </h4>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                    {selectedProduct.features.map((feature, idx) => (
+                      <li key={idx}>{feature}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {/* Description */}
+              {selectedProduct.description && (
+                <section>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <FileTextIcon className="w-4 h-4 text-primary" /> Description
+                  </h4>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">
+                    {selectedProduct.description}
+                  </p>
+                </section>
+              )}
+
+              {/* Secondary Images */}
+              {selectedProduct.images && selectedProduct.images.length > 0 && (
+                <section>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-primary" /> Images Supplémentaires
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {selectedProduct.images.map((img, idx) => (
+                      <img
+                        key={idx}
+                        src={img}
+                        alt={`Image ${idx + 1}`}
+                        className="w-full h-24 object-cover rounded-md border"
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Dates */}
+              <section>
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <ClockIcon className="w-4 h-4 text-primary" /> Historique
+                </h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Créé le</p>
+                    <p className="font-medium">
+                      {selectedProduct.createdAt
+                        ? new Date(selectedProduct.createdAt).toLocaleDateString('fr-FR')
+                        : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Mis à jour le</p>
+                    <p className="font-medium">
+                      {selectedProduct.updatedAt
+                        ? new Date(selectedProduct.updatedAt).toLocaleDateString('fr-FR')
+                        : '—'}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Close Button */}
+              <SheetClose asChild>
+                <Button className="mt-8 w-full" variant="outline">
+                  Fermer
+                </Button>
+              </SheetClose>
+            </div>
+          ) : (
+            <div className="p-6 text-center text-muted-foreground">
+              Aucun produit sélectionné.
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
     </AdminLayout>
   );
 }

@@ -1,5 +1,16 @@
 import mongoose from 'mongoose';
 
+// Helper function to safely generate slugs
+const generateSlug = (text) => {
+  if (!text) return null;
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')   // remove special characters
+    .replace(/[\s_-]+/g, '-')   // collapse spaces and underscores
+    .replace(/^-+|-+$/g, '');   // trim dashes
+};
+
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -13,15 +24,11 @@ const productSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  comparePrice: {
-    type: Number,
-  },
-  images: [{
-    type: String,
-  }],
+  comparePrice: Number,
+  images: [String],
   mainImage: {
     type: String,
-    default: ''
+    default: '',
   },
   brand: {
     type: mongoose.Schema.Types.ObjectId,
@@ -44,7 +51,16 @@ const productSchema = new mongoose.Schema({
   features: [String],
   sku: {
     type: String,
+    index: true,
     unique: true,
+  },
+  slug: {
+    type: String,
+    default: function () {
+      return generateSlug(this.name) || `product-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    },
+    index: true,
+    // not unique in schema (we manage it via partial index in MongoDB)
   },
   isActive: {
     type: Boolean,
@@ -56,6 +72,14 @@ const productSchema = new mongoose.Schema({
   },
 }, {
   timestamps: true,
+});
+
+// If slug is missing or invalid, auto-generate it before save
+productSchema.pre('save', function (next) {
+  if (!this.slug || this.slug.trim() === '') {
+    this.slug = generateSlug(this.name) || `product-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+  }
+  next();
 });
 
 export default mongoose.models.Product || mongoose.model('Product', productSchema);

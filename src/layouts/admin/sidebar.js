@@ -54,7 +54,7 @@ export default function AdminSidebar() {
     { href: '/admin/categories', label: 'Catégories', icon: Icons.Catégories },
     { href: '/admin/brands', label: 'Marques', icon: Icons.Marques },
     { href: '/admin/products', label: 'Produits', icon: Icons.Produits },
-    { href: '/admin/inventory', label: 'Gestion de Stock', icon: Icons.Stock },
+    { href: '/admin/stock', label: 'Gestion de Stock', icon: Icons.Stock },
     { href: '/admin/orders', label: 'Commandes', icon: Icons.Commandes },
     { href: '/admin/reports', label: 'Rapports', icon: Icons.Rapports },
   ];
