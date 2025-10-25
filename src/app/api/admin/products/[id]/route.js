@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import Product from '@/models/Product';
+await connectDB();
 
 const generateSlug = (text) => {
   if (!text) return null;

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import Stock from "@/models/Stock";
 import Product from "@/models/Product";
+await connectDB();
 
 // 🟠 PUT - Update stock entry
 export async function PUT(request, { params }) {

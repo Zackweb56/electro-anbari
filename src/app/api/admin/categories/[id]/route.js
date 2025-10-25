@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import Category from '@/models/Category';
+await connectDB();
 
 // PUT - Update category
 export async function PUT(request, { params }) {

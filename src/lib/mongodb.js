@@ -29,6 +29,15 @@ export default async function connectDB() {
         console.log('✅ MongoDB connected!');
         console.log('Host:', mongoose.connection.host);
         console.log('Database:', mongoose.connection.name);
+
+        // ✅ Force register all models once globally
+        import('@/models/Admin');
+        import('@/models/Brand');
+        import('@/models/Category');
+        import('@/models/Config');
+        import('@/models/Product');
+        import('@/models/Stock');
+
         return mongoose;
       })
       .catch((err) => {

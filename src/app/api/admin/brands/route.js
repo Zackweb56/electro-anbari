@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import Brand from '@/models/Brand';
+await connectDB();
 
 // GET - Get all brands
 export async function GET() {

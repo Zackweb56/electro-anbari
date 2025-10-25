@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import Stock from "@/models/Stock";
 import Product from "@/models/Product";
+await connectDB();
 
 // 🟢 GET - Fetch all stock items
 export async function GET() {
