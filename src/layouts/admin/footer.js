@@ -7,7 +7,7 @@ export default function AdminFooter() {
             © 2024 Electro Anbari Store. Tous droits réservés.
           </p>
           <p className="text-sm text-muted-foreground">
-            Système de Gestion de Magasin d'Ordinateurs
+            Système de Gestion de Magasin d&apos;Ordinateurs
           </p>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { Switch } from '@/components/ui/switch';
+import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -278,7 +279,7 @@ export default function StockPage() {
         return (
           <div className="flex items-center space-x-3">
             {product.images?.[0] ? (
-              <img 
+              <Image 
                 src={product.images[0]} 
                 alt={product.name}
                 className="w-10 h-10 rounded-md object-cover"
@@ -537,7 +538,7 @@ export default function StockPage() {
                 </Select>
                 {availableProducts.length === 0 && !selectedStock && (
                   <p className="text-sm text-red-600">
-                    Tous les produits ont déjà du stock ou aucun produit n'est disponible
+                    Tous les produits ont déjà du stock ou aucun produit n&apos;est disponible
                   </p>
                 )}
               </div>
@@ -569,7 +570,7 @@ export default function StockPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lowStockAlert">Seuil d'Alerte Stock Faible</Label>
+                <Label htmlFor="lowStockAlert">Seuil d&apos;Alerte Stock Faible</Label>
                 <Input
                   id="lowStockAlert"
                   type="number"
@@ -618,7 +619,7 @@ export default function StockPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Supprimer le stock</AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer le stock pour "{selectedStock?.product?.name}" ?
+                Êtes-vous sûr de vouloir supprimer le stock pour &quot;<b>{selectedStock?.product?.name}</b>&quot; ?
                 Cette action ne peut pas être annulée.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -653,7 +654,7 @@ export default function StockPage() {
               <div className="flex items-start gap-4">
                 {/* Main Image */}
                 {selectedStock.product?.mainImage || selectedStock.product?.images?.[0] ? (
-                  <img
+                  <Image
                     src={selectedStock.product.mainImage || selectedStock.product.images[0]}
                     alt={selectedStock.product.name}
                     className="w-20 h-20 rounded-md object-cover border shadow-sm"

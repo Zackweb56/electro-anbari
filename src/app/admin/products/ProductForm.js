@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { X, Plus, Upload, Star } from 'lucide-react';
+import Image from 'next/image';
 
 export default function ProductForm({ product, onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
@@ -343,11 +344,11 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
         {/* Media Tab */}
         <TabsContent value="media" className="space-y-4">
         <div className="space-y-4">
-            <div>
-            <Label>Images du produit</Label>
-            <p className="text-sm text-muted-foreground mb-4">
-                Cliquez sur une image pour la définir comme image principale. L'image principale a une bordure verte.
-            </p>
+      <div>
+      <Label>Images du produit</Label>
+      <p className="text-sm text-muted-foreground mb-4">
+        Cliquez sur une image pour la définir comme image principale. L&apos;image principale a une bordure verte.
+      </p>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 {formData.images.map((image, index) => (
@@ -356,7 +357,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                     className="relative cursor-pointer transition-all duration-200"
                     onClick={() => setAsMainImage(image)}
                 >
-                    <img 
+                    <Image 
                     src={image} 
                     alt={`Product image ${index + 1}`}
                     className={`w-full h-24 object-cover rounded-lg border-2 transition-all duration-200 ${
@@ -414,10 +415,10 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
 
             {/* Main Image Preview */}
             {formData.mainImage && (
-            <div className="mt-6 p-4 border rounded-lg bg-muted/20">
-                <Label className="text-base font-medium">Aperçu de l'image principale</Label>
+      <div className="mt-6 p-4 border rounded-lg bg-muted/20">
+        <Label className="text-base font-medium">Aperçu de l&apos;image principale</Label>
                 <div className="mt-3 flex flex-col items-center">
-                <img 
+                <Image 
                     src={formData.mainImage} 
                     alt="Image principale"
                     className="max-w-full md:max-w-xs max-h-48 object-contain rounded-lg border"
@@ -486,7 +487,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="operatingSystem">Système d'exploitation</Label>
+              <Label htmlFor="operatingSystem">Système d&apos;exploitation</Label>
               <Input
                 id="operatingSystem"
                 value={formData.specifications.operatingSystem}

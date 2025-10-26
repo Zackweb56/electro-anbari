@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Switch } from '@/components/ui/switch'; // Add this import
+import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -190,7 +191,7 @@ export default function BrandsPage() {
       header: 'Logo',
       cell: (brand) => (
         brand.logo ? (
-          <img 
+          <Image 
             src={brand.logo} 
             alt={brand.name}
             className="w-10 h-10 rounded-md object-cover"
@@ -328,7 +329,7 @@ export default function BrandsPage() {
                 />
                 {formData.logo && (
                     <div className="mt-2">
-                    <img 
+                    <Image 
                         src={formData.logo} 
                         alt="Logo preview" 
                         className="w-20 h-20 object-cover rounded-md"
@@ -374,7 +375,7 @@ export default function BrandsPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Supprimer la marque</AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer la marque "{selectedBrand?.name}" ?
+                Êtes-vous sûr de vouloir supprimer la marque &quot;<b>{selectedBrand?.name}</b>&quot; ?
                 Cette action ne peut pas être annulée.
               </AlertDialogDescription>
             </AlertDialogHeader>

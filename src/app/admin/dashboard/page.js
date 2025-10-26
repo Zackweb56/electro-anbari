@@ -90,7 +90,7 @@ export default function AdminDashboard() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
             <p className="text-muted-foreground">
-              Aperçu de votre magasin d'ordinateurs
+              Aperçu de votre magasin d&apos;ordinateurs
             </p>
           </div>
           <div className="flex items-center gap-2">

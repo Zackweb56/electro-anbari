@@ -38,7 +38,7 @@ export default function AdminHeader() {
             <h1 className="text-2xl font-bold text-card-foreground">
               Electro Anbari Store
             </h1>
-            <p className="text-muted-foreground text-sm">Gestion de Magasin d'Ordinateurs</p>
+            <p className="text-muted-foreground text-sm">Gestion de Magasin d&apos;Ordinateurs</p>
           </div>
           
           {/* Mobile Logo */}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { Switch } from '@/components/ui/switch';
+import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -176,13 +177,13 @@ export default function ProductsPage() {
       header: 'Image',
       cell: (product) => (
         product.mainImage ? (
-          <img 
+          <Image 
             src={product.mainImage} 
             alt={product.name}
             className="w-10 h-10 rounded-md object-cover"
           />
         ) : product.images && product.images.length > 0 ? (
-          <img 
+          <Image 
             src={product.images[0]} 
             alt={product.name}
             className="w-10 h-10 rounded-md object-cover"
@@ -346,7 +347,7 @@ export default function ProductsPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Supprimer le produit</AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer le produit "{selectedProduct?.name}" ?
+                Êtes-vous sûr de vouloir supprimer le produit &quot;<b>{selectedProduct?.name}</b>&quot; ?
                 Cette action ne peut pas être annulée.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -376,7 +377,7 @@ export default function ProductsPage() {
               {/* Main Info */}
               <div className="flex flex-col sm:flex-row items-start gap-6">
                 {selectedProduct.mainImage ? (
-                  <img
+                  <Image
                     src={selectedProduct.mainImage}
                     alt={selectedProduct.name}
                     className="w-40 h-40 rounded-md object-cover border"
@@ -511,7 +512,7 @@ export default function ProductsPage() {
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {selectedProduct.images.map((img, idx) => (
-                      <img
+                      <Image
                         key={idx}
                         src={img}
                         alt={`Image ${idx + 1}`}
