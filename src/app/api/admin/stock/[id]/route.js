@@ -5,7 +5,28 @@ import Stock from "@/models/Stock";
 import Product from "@/models/Product";
 await connectDB();
 
-// 🟠 PUT - Update stock entry
+// � GET - Fetch single stock item
+export async function GET(request, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session)
+      return Response.json({ error: "Non autorisé" }, { status: 401 });
+
+    await connectDB();
+
+    const stock = await Stock.findById(params.id)
+      .populate("product", "name price mainImage images model");
+    if (!stock)
+      return Response.json({ error: "Stock non trouvé" }, { status: 404 });
+
+    return Response.json(stock);
+  } catch (error) {
+    console.error("Error fetching stock:", error);
+    return Response.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}
+
+// �🟠 PUT - Update stock entry
 export async function PUT(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -39,9 +60,12 @@ export async function PUT(request, { params }) {
     stock.updateStatus();
     await stock.save();
 
+    const updatedStock = await Stock.findById(stock._id)
+      .populate("product", "name price mainImage images model");
+
     return Response.json({
       message: "Stock mis à jour avec succès",
-      stock,
+      stock: updatedStock,
     });
   } catch (error) {
     console.error("Error updating stock:", error);

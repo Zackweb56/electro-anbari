@@ -194,6 +194,8 @@ export default function CategoriesPage() {
           <Image 
             src={category.image} 
             alt={category.name}
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-md object-cover"
           />
         ) : (
@@ -332,6 +334,8 @@ export default function CategoriesPage() {
                     <Image 
                         src={formData.image} 
                         alt="Image preview" 
+                        width={80}
+                        height={80}
                         className="w-20 h-20 object-cover rounded-md"
                     />
                     </div>

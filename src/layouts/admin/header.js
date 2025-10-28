@@ -33,18 +33,7 @@ export default function AdminHeader() {
     <header className="bg-card border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
-          {/* Logo - Hidden on mobile, shown on desktop */}
-          <div className="hidden lg:block">
-            <h1 className="text-2xl font-bold text-card-foreground">
-              Electro Anbari Store
-            </h1>
-            <p className="text-muted-foreground text-sm">Gestion de Magasin d&apos;Ordinateurs</p>
-          </div>
-          
-          {/* Mobile Logo */}
-          <div className="lg:hidden">
-            <h1 className="text-xl font-bold text-card-foreground">Tableau de Bord</h1>
-          </div>
+          {/* i want to add a globar search bar here with suggestions after 3 carachters */}
 
           <div className="flex items-center space-x-4">
             <span className="hidden sm:inline text-sm text-muted-foreground">

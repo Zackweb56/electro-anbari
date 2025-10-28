@@ -27,7 +27,7 @@ const configSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    default: 'Casablanca, Maroc',
+    default: 'Fequih ben saleh, Maroc',
   },
   latitude: {
     type: Number,

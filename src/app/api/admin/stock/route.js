@@ -15,7 +15,7 @@ export async function GET() {
     await connectDB();
 
     const stockItems = await Stock.find()
-      .populate("product", "name price")
+      .populate("product", "name price mainImage images")
       .sort({ createdAt: -1 });
 
     return Response.json(stockItems);

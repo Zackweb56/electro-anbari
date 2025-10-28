@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -46,9 +46,14 @@ const Icons = {
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [activeLink, setActiveLink] = useState(null);
 
-  // Menu items organized in logical workflow order
+  useEffect(() => {
+    setActiveLink(null);
+  }, [pathname]);
+
   const menuItems = [
     { href: '/admin/dashboard', label: 'Tableau de Bord', icon: Icons.Tableau },
     { href: '/admin/categories', label: 'Catégories', icon: Icons.Catégories },
@@ -73,46 +78,78 @@ export default function AdminSidebar() {
         </svg>
       </Button>
 
-      {/* Overlay for mobile */}
+      {/* Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-40
-        w-64 bg-card border-r border-border text-card-foreground transform transition-transform duration-300 ease-in-out
-        ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        {/* Logo for mobile */}
-        <div className="lg:hidden p-4 border-b border-border">
-          <h1 className="text-xl font-bold text-card-foreground">Electro Anbari</h1>
+      <aside
+        className={`
+          fixed lg:static inset-y-0 left-0 z-40
+          w-64 bg-card border-r border-border text-card-foreground transform transition-transform duration-300 ease-in-out
+          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-border">
+          <h1 className="text-xl font-bold text-card-foreground">Electro Anbari Store</h1>
+          <p className="text-[11px] text-muted-foreground mt-1 leading-tight">
+            Gestion de Magasin d&apos;Ordinateurs
+          </p>
         </div>
 
+        {/* Menu */}
         <ScrollArea className="h-full">
           <nav className="p-4">
             <div className="space-y-1">
               {menuItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
-                  <Link
+                  <Button
                     key={item.href}
-                    href={item.href}
-                    onClick={() => setIsMobileOpen(false)}
+                    variant={isActive ? 'secondary' : 'ghost'}
+                    className={`w-full justify-start text-left ${
+                      isActive
+                        ? 'bg-secondary text-secondary-foreground'
+                        : 'text-card-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                    onClick={() => {
+                      setActiveLink(item.href);
+                      setIsMobileOpen(false);
+                      router.push(item.href);
+                    }}
                   >
-                    <Button
-                      variant={isActive ? "secondary" : "ghost"}
-                      className={`w-full justify-start ${
-                        isActive ? 'bg-secondary text-secondary-foreground' : 'text-card-foreground hover:bg-accent hover:text-accent-foreground'
-                      }`}
-                    >
-                      <span className="flex-shrink-0 mr-3">{item.icon}</span>
-                      <span className="font-medium">{item.label}</span>
-                    </Button>
-                  </Link>
+                    <span className="flex-shrink-0 mr-3">{item.icon}</span>
+                    <span className="font-medium flex-1 text-left">{item.label}</span>
+                    {activeLink === item.href && (
+                      <div className="ml-2 animate-spin">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                      </div>
+                    )}
+                  </Button>
                 );
               })}
             </div>

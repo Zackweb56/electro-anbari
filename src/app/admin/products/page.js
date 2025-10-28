@@ -180,12 +180,16 @@ export default function ProductsPage() {
           <Image 
             src={product.mainImage} 
             alt={product.name}
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-md object-cover"
           />
         ) : product.images && product.images.length > 0 ? (
           <Image 
             src={product.images[0]} 
             alt={product.name}
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-md object-cover"
           />
         ) : (
@@ -380,6 +384,8 @@ export default function ProductsPage() {
                   <Image
                     src={selectedProduct.mainImage}
                     alt={selectedProduct.name}
+                    width={160}
+                    height={160}
                     className="w-40 h-40 rounded-md object-cover border"
                   />
                 ) : (
@@ -516,6 +522,8 @@ export default function ProductsPage() {
                         key={idx}
                         src={img}
                         alt={`Image ${idx + 1}`}
+                        width={96}
+                        height={96}
                         className="w-full h-24 object-cover rounded-md border"
                       />
                     ))}

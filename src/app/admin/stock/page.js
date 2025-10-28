@@ -278,10 +278,12 @@ export default function StockPage() {
         
         return (
           <div className="flex items-center space-x-3">
-            {product.images?.[0] ? (
+            {product.mainImage || product.images?.[0] ? (
               <Image 
-                src={product.images[0]} 
+                src={product.mainImage || product.images[0]} 
                 alt={product.name}
+                width={40}
+                height={40}
                 className="w-10 h-10 rounded-md object-cover"
               />
             ) : (
@@ -657,6 +659,8 @@ export default function StockPage() {
                   <Image
                     src={selectedStock.product.mainImage || selectedStock.product.images[0]}
                     alt={selectedStock.product.name}
+                    width={80}
+                    height={80}
                     className="w-20 h-20 rounded-md object-cover border shadow-sm"
                   />
                 ) : (
