@@ -1,10 +1,11 @@
+// src/app/api/admin/categories/[id]/route.js
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import Category from '@/models/Category';
-await connectDB();
+import Product from '@/models/Product'; // Ajouter cette importation
 
-// PUT - Update category
+// PUT - Update category (garder exactement comme avant)
 export async function PUT(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -13,7 +14,7 @@ export async function PUT(request, { params }) {
       return Response.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const { name, image, isActive } = await request.json(); // Add isActive here
+    const { name, image, isActive } = await request.json();
 
     if (!name) {
       return Response.json({ error: 'Le nom de la catégorie est requis' }, { status: 400 });
@@ -26,7 +27,7 @@ export async function PUT(request, { params }) {
       {
         name: name.trim(),
         image: image?.trim() || '',
-        isActive: isActive !== undefined ? isActive : true // Handle isActive
+        isActive: isActive !== undefined ? isActive : true
       },
       { new: true, runValidators: true }
     );
@@ -51,7 +52,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE - Delete category (unchanged)
+// DELETE - Delete category (updated to check for products)
 export async function DELETE(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -61,6 +62,18 @@ export async function DELETE(request, { params }) {
     }
 
     await connectDB();
+
+    // Check if any products are using this category
+    const productsWithCategory = await Product.countDocuments({ category: params.id });
+    
+    if (productsWithCategory > 0) {
+      return Response.json(
+        { 
+          error: `Impossible de supprimer cette catégorie. Elle est utilisée par ${productsWithCategory} produit(s). Veuillez d'abord supprimer ou modifier ces produits.` 
+        }, 
+        { status: 400 }
+      );
+    }
 
     const category = await Category.findByIdAndDelete(params.id);
 

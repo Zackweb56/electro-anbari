@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import ProductGrid from '@/components/store/ProductGrid';
 import ProductFilters from '@/components/store/ProductFilters';
+import { FaSearch } from "react-icons/fa";
 
 export default function StorePage() {
   const [products, setProducts] = useState([]);
@@ -17,7 +18,7 @@ export default function StorePage() {
   const [loading, setLoading] = useState(true);
   const [filteredProducts, setFilteredProducts] = useState([]);
 
-  // Charger les données
+  // Charger les données avec filtrage des produits en stock
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -29,16 +30,41 @@ export default function StorePage() {
           fetch('/api/public/brands')
         ]);
 
+        // Handle the new API response format
         const productsData = await productsRes.json();
         const categoriesData = await categoriesRes.json();
         const brandsData = await brandsRes.json();
 
-        setProducts(productsData.products || []);
-        setCategories(categoriesData.categories || []);
-        setBrands(brandsData.brands || []);
-        setFilteredProducts(productsData.products || []);
+        // Extract data based on API response format
+        const productsArray = Array.isArray(productsData) ? productsData : (productsData.products || []);
+        const categoriesArray = categoriesData.success ? categoriesData.categories : (categoriesData.categories || []);
+        const brandsArray = brandsData.success ? brandsData.brands : (brandsData.brands || []);
+
+        // Filter products to only show those with available stock
+        const availableProducts = productsArray.filter(product => {
+          // Check if product has stock and it's available
+          const hasStock = product.stock && 
+                          product.stock.currentQuantity > 0 && 
+                          product.stock.status !== 'out_of_stock';
+          
+          // Also check if product is active
+          const isActive = product.isActive !== false;
+          
+          return hasStock && isActive;
+        });
+
+        console.log(`Total products: ${productsArray.length}, Available: ${availableProducts.length}`);
+
+        setProducts(availableProducts);
+        setCategories(categoriesArray);
+        setBrands(brandsArray);
+        setFilteredProducts(availableProducts);
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error);
+        setProducts([]);
+        setCategories([]);
+        setBrands([]);
+        setFilteredProducts([]);
       } finally {
         setLoading(false);
       }
@@ -127,14 +153,56 @@ export default function StorePage() {
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900">Notre Boutique</h1>
               <p className="text-gray-600 mt-2">
-                Découvrez notre incroyable collection de produits
+                Découvrez notre collection de produits disponibles
               </p>
+              
+              {/* Results counter */}
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  {filteredProducts.length === products.length 
+                    ? `${products.length} produit${products.length !== 1 ? 's' : ''} disponible${products.length !== 1 ? 's' : ''}`
+                    : `${filteredProducts.length} produit${filteredProducts.length !== 1 ? 's' : ''} sur ${products.length} disponible${products.length !== 1 ? 's' : ''}`
+                  }
+                </p>
+                
+                {filteredProducts.length !== products.length && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Effacer les filtres
+                  </button>
+                )}
+              </div>
             </div>
 
-            <ProductGrid 
-              products={filteredProducts}
-              totalProducts={products.length}
-            />
+            {filteredProducts.length > 0 ? (
+              <ProductGrid products={filteredProducts} />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-gradient-to-b from-gray-50 to-white rounded-2xl shadow-sm border border-gray-100">
+                <div className="text-blue-500 text-7xl mb-6 animate-bounce-slow">
+                  <FaSearch />
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+                  Aucun produit trouvé
+                </h3>
+                <p className="text-gray-600 max-w-md mb-6">
+                  {products.length === 0 
+                    ? "Aucun produit n'est actuellement disponible en stock. Revenez bientôt pour découvrir nos nouvelles arrivées!"
+                    : "Aucun produit ne correspond à vos critères de recherche. Essayez de modifier vos filtres ou explorez d'autres catégories."
+                  }
+                </p>
+                {products.length > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-medium hover:bg-blue-700 active:scale-95 transition-all shadow-md hover:shadow-lg"
+                  >
+                    Effacer tous les filtres
+                  </button>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
       </div>

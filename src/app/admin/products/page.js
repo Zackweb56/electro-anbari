@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,9 @@ export default function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [viewSheetOpen, setViewSheetOpen] = useState(false);
+  // Dans votre ProductsPage, ajoutez ces états et fonctions
+  const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [updatingFeatured, setUpdatingFeatured] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -66,6 +70,8 @@ export default function ProductsPage() {
   };
 
   const handleStatusToggle = async (product) => {
+    setUpdatingStatus(product._id);
+    
     try {
       const response = await fetch(`/api/admin/products/${product._id}`, {
         method: 'PUT',
@@ -79,21 +85,22 @@ export default function ProductsPage() {
       });
 
       if (response.ok) {
-        setMessage({ 
-          type: 'success', 
-          text: `Produit ${!product.isActive ? 'activé' : 'désactivé'} avec succès` 
-        });
+        toast.success(`Produit ${!product.isActive ? 'activé' : 'désactivé'} avec succès`);
         fetchProducts();
       } else {
         const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la modification' });
+        toast.error(data.error || 'Erreur lors de la modification du statut');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion lors de la modification du statut');
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
   const handleFeaturedToggle = async (product) => {
+    setUpdatingFeatured(product._id);
+    
     try {
       const response = await fetch(`/api/admin/products/${product._id}`, {
         method: 'PUT',
@@ -107,17 +114,16 @@ export default function ProductsPage() {
       });
 
       if (response.ok) {
-        setMessage({ 
-          type: 'success', 
-          text: `Produit ${!product.isFeatured ? 'ajouté aux' : 'retiré des'} featured avec succès` 
-        });
+        toast.success(`Produit ${!product.isFeatured ? 'ajouté aux' : 'retiré des'} featured avec succès`);
         fetchProducts();
       } else {
         const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la modification' });
+        toast.error(data.error || 'Erreur lors de la modification');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion lors de la modification');
+    } finally {
+      setUpdatingFeatured(null);
     }
   };
 
@@ -129,17 +135,18 @@ export default function ProductsPage() {
         method: 'DELETE',
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Produit supprimé avec succès' });
+        toast.success('Produit supprimé avec succès');
         setDeleteDialogOpen(false);
         setSelectedProduct(null);
         fetchProducts();
       } else {
-        const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la suppression' });
+        toast.error(data.error || 'Erreur lors de la suppression');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion lors de la suppression');
     }
   };
 
@@ -147,7 +154,11 @@ export default function ProductsPage() {
     setDialogOpen(false);
     setSelectedProduct(null);
     fetchProducts();
-    setMessage({ type: 'success', text: selectedProduct ? 'Produit mis à jour avec succès' : 'Produit créé avec succès' });
+    toast.success(selectedProduct ? 'Produit mis à jour avec succès' : 'Produit créé avec succès');
+  };
+
+  const canDeleteProduct = (product) => {
+    return !product.stockCount || product.stockCount === 0;
   };
 
   const openCreateDialog = () => {
@@ -219,15 +230,34 @@ export default function ProductsPage() {
       cell: (product) => `${product.price} MAD`,
     },
     {
+      key: 'stockCount',
+      header: 'Stock Associé',
+      cell: (product) => (
+        <Badge 
+          variant={product.stockCount > 0 ? "default" : "secondary"}
+          className={product.stockCount > 0 ? "bg-blue-500" : ""}
+        >
+          {product.stockCount || 0} entrée(s)
+        </Badge>
+      ),
+    },
+    {
       key: 'isActive',
       header: 'Statut',
       cell: (product) => (
         <div className="flex items-center space-x-2">
-          <Switch
-            checked={product.isActive}
-            onCheckedChange={() => handleStatusToggle(product)}
-            className="data-[state=checked]:bg-green-500"
-          />
+          {updatingStatus === product._id ? (
+            <div className="w-11 h-6 flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <Switch
+              checked={product.isActive}
+              onCheckedChange={() => handleStatusToggle(product)}
+              disabled={updatingStatus === product._id}
+              className="data-[state=checked]:bg-green-500"
+            />
+          )}
           <Badge variant={product.isActive ? "default" : "secondary"}>
             {product.isActive ? "Active" : "Inactive"}
           </Badge>
@@ -239,11 +269,18 @@ export default function ProductsPage() {
       header: 'Featured',
       cell: (product) => (
         <div className="flex items-center space-x-2">
-          <Switch
-            checked={product.isFeatured}
-            onCheckedChange={() => handleFeaturedToggle(product)}
-            className="data-[state=checked]:bg-blue-500"
-          />
+          {updatingFeatured === product._id ? (
+            <div className="w-11 h-6 flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <Switch
+              checked={product.isFeatured}
+              onCheckedChange={() => handleFeaturedToggle(product)}
+              disabled={updatingFeatured === product._id}
+              className="data-[state=checked]:bg-blue-500"
+            />
+          )}
           <Badge variant={product.isFeatured ? "default" : "outline"}>
             {product.isFeatured ? "Oui" : "Non"}
           </Badge>
@@ -307,6 +344,7 @@ export default function ProductsPage() {
                 onEdit={openEditDialog}
                 onDelete={openDeleteDialog}
                 onView={openViewSheet}
+                canDelete={canDeleteProduct}
               />
             ) : (
               <div className="text-center py-12">
@@ -349,20 +387,44 @@ export default function ProductsPage() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Supprimer le produit</AlertDialogTitle>
-              <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer le produit &quot;<b>{selectedProduct?.name}</b>&quot; ?
-                Cette action ne peut pas être annulée.
-              </AlertDialogDescription>
+              <AlertDialogTitle>
+                {selectedProduct?.stockCount > 0 
+                  ? 'Suppression impossible' 
+                  : 'Supprimer le produit'
+                }
+              </AlertDialogTitle>
             </AlertDialogHeader>
+            
+            <div className="text-sm text-muted-foreground">
+              {selectedProduct?.stockCount > 0 ? (
+                <div className="space-y-2">
+                  <p>
+                    Le produit &quot;<b>{selectedProduct?.name}</b>&quot; est associé à{' '}
+                    <b>{selectedProduct?.stockCount} entrée(s) de stock</b>.
+                  </p>
+                  <p className="text-amber-600 font-medium">
+                    Supprimez d'abord le stock associé.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  Êtes-vous sûr de vouloir supprimer le produit &quot;<b>{selectedProduct?.name}</b>&quot; ?
+                  <br />
+                  Cette action ne peut pas être annulée.
+                </div>
+              )}
+            </div>
+            
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Supprimer
-              </AlertDialogAction>
+              {selectedProduct?.stockCount === 0 && (
+                <AlertDialogAction 
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Supprimer
+                </AlertDialogAction>
+              )}
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

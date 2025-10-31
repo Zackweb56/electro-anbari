@@ -1,6 +1,7 @@
 // src/app/admin/layout.js
 import AuthProvider from '@/components/providers/AuthProvider';
 import './admin.css';
+import { Toaster } from 'sonner';
 
 export const metadata = {
   title: 'Electro Anbari - Admin',
@@ -13,8 +14,14 @@ export default function AdminLayout({ children }) {
   // dark variants apply only to the admin area.
   return (
     <AuthProvider>
-      <div className="dark flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen">
         <main className="flex-1">{children}</main>
+        <Toaster 
+          position="top-right"
+          richColors
+          closeButton
+          duration={4000}
+        />
       </div>
     </AuthProvider>
   );

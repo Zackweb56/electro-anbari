@@ -1,8 +1,9 @@
+// src/app/api/admin/products/[id]/route.js
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import Product from '@/models/Product';
-await connectDB();
+import Stock from '@/models/Stock';
 
 const generateSlug = (text) => {
   if (!text) return null;
@@ -14,6 +15,7 @@ const generateSlug = (text) => {
     .replace(/^-+|-+$/g, '');
 };
 
+// GET un produit spécifique
 export async function GET(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -34,6 +36,7 @@ export async function GET(request, { params }) {
   }
 }
 
+// PUT - Mettre à jour un produit
 export async function PUT(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -83,12 +86,25 @@ export async function PUT(request, { params }) {
   }
 }
 
+// DELETE - Supprimer un produit
 export async function DELETE(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return Response.json({ error: 'Non autorisé' }, { status: 401 });
 
     await connectDB();
+
+    // Vérifier si le produit a du stock associé
+    const stockWithProduct = await Stock.countDocuments({ product: params.id });
+    
+    if (stockWithProduct > 0) {
+      return Response.json(
+        { 
+          error: `Impossible de supprimer ce produit. Il est associé à ${stockWithProduct} entrée(s) de stock. Veuillez d'abord supprimer le stock associé.` 
+        }, 
+        { status: 400 }
+      );
+    }
 
     const product = await Product.findByIdAndDelete(params.id);
     if (!product) return Response.json({ error: 'Produit non trouvé' }, { status: 404 });

@@ -195,8 +195,18 @@ export default function StoreFooter() {
             <h3 className="text-lg font-semibold mb-4 text-white">Nous trouver</h3>
             
             {mapUrl ? (
-              <div className="relative bg-neutral-800 rounded-xl overflow-hidden shadow-2xl border border-neutral-700">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-600/10 z-0"></div>
+              <div className="relative bg-neutral-800 rounded-xl overflow-hidden shadow-xl border border-neutral-700">
+                {/* Address in top-right corner */}
+                <div className="absolute top-4 right-4 z-20 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
+                  <div className="flex items-center space-x-2">
+                    <FaMapMarkerAlt className="w-3 h-3 text-red-500 flex-shrink-0" />
+                    <span className="text-gray-800 text-xs font-semibold max-w-[140px] truncate">
+                      {config.address}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Map */}
                 <iframe
                   src={mapUrl}
                   width="100%"
@@ -206,25 +216,24 @@ export default function StoreFooter() {
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   title="Localisation du magasin"
-                  className="w-full h-48 lg:h-56 relative z-10"
+                  className="w-full h-48 lg:h-56"
                 />
-                <div className="p-4 bg-gradient-to-r from-neutral-800 to-neutral-900 relative z-10">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <FaMapMarkerAlt className="w-4 h-4 text-red-500 flex-shrink-0" />
-                    <span className="text-neutral-300">{config.address}</span>
-                  </div>
+
+                {/* Simple bottom action */}
+                <div className="p-3 bg-neutral-900 border-t border-neutral-700">
                   <button 
                     onClick={() => window.open(`https://maps.google.com/?q=${config.latitude},${config.longitude}`, '_blank')}
-                    className="mt-2 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full transition-colors"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-lg transition-colors flex items-center justify-center space-x-2"
                   >
-                    Voir sur Google Maps
+                    <FaMapMarkerAlt className="w-3 h-3" />
+                    <span>Voir sur Google Maps</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="bg-neutral-800 rounded-xl p-8 text-center border border-neutral-700">
+              <div className="bg-neutral-800 rounded-xl p-6 text-center border border-neutral-700">
                 <FaMapMarkerAlt className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
-                <p className="text-neutral-400 text-sm">Coordonnées GPS non configurées</p>
+                <p className="text-neutral-400 text-sm">Localisation à configurer</p>
               </div>
             )}
           </div>

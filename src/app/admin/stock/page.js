@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -48,18 +49,22 @@ export default function StockPage() {
   const [stock, setStock] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false); // NEW: Separate create dialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false); // NEW: Separate edit dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedStock, setSelectedStock] = useState(null);
-  const [formData, setFormData] = useState({
+  const [createFormData, setCreateFormData] = useState({ // NEW: Separate create form
     product: '',
     initialQuantity: 0,
     currentQuantity: 0,
     lowStockAlert: 5,
     isActive: true,
   });
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [editFormData, setEditFormData] = useState({ // NEW: Separate edit form
+    soldQuantity: 0,
+  });
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState({}); // NEW: Track updating status for each item
 
   useEffect(() => {
     fetchStock();
@@ -72,15 +77,15 @@ export default function StockPage() {
       const response = await fetch('/api/admin/stock');
       if (response.ok) {
         const data = await response.json();
-        console.log('Stock data:', data); // Debug log
+        console.log('Stock data:', data);
         setStock(data);
       } else {
         console.error('Failed to fetch stock:', response.status);
-        setMessage({ type: 'error', text: 'Erreur lors du chargement du stock' });
+        toast.error('Erreur lors du chargement du stock');
       }
     } catch (error) {
       console.error('Error fetching stock:', error);
-      setMessage({ type: 'error', text: 'Erreur de connexion lors du chargement du stock' });
+      toast.error('Erreur de connexion lors du chargement du stock');
     } finally {
       setLoading(false);
     }
@@ -91,7 +96,7 @@ export default function StockPage() {
       const response = await fetch('/api/admin/products');
       if (response.ok) {
         const data = await response.json();
-        console.log('Products data:', data); // Debug log
+        console.log('Products data:', data);
         setProducts(data);
       }
     } catch (error) {
@@ -100,6 +105,9 @@ export default function StockPage() {
   };
 
   const handleStatusToggle = async (stockItem) => {
+    // Set loading state for this specific item
+    setUpdatingStatus(prev => ({ ...prev, [stockItem._id]: true }));
+    
     try {
       const response = await fetch(`/api/admin/stock/${stockItem._id}`, {
         method: 'PUT',
@@ -113,45 +121,39 @@ export default function StockPage() {
       });
 
       if (response.ok) {
-        setMessage({ 
-          type: 'success', 
-          text: `Stock ${!stockItem.isActive ? 'activé' : 'désactivé'} avec succès` 
-        });
+        toast.success(`Stock ${!stockItem.isActive ? 'activé' : 'désactivé'} avec succès`);
         fetchStock();
       } else {
         const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la modification' });
+        toast.error(data.error || 'Erreur lors de la modification');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion');
+    } finally {
+      // Clear loading state for this item
+      setUpdatingStatus(prev => ({ ...prev, [stockItem._id]: false }));
     }
   };
 
-  const handleSubmit = async (e) => {
+  // NEW: Handle create stock
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
-      const url = selectedStock 
-        ? `/api/admin/stock/${selectedStock._id}`
-        : '/api/admin/stock';
-      
-      const method = selectedStock ? 'PUT' : 'POST';
-
-      // Prepare data for API
       const submitData = {
-        product: formData.product,
-        initialQuantity: parseInt(formData.initialQuantity),
-        currentQuantity: parseInt(formData.currentQuantity),
-        lowStockAlert: parseInt(formData.lowStockAlert),
-        isActive: formData.isActive,
+        product: createFormData.product,
+        initialQuantity: parseInt(createFormData.initialQuantity),
+        currentQuantity: parseInt(createFormData.currentQuantity),
+        soldQuantity: 0, // Always 0 for new stock
+        lowStockAlert: parseInt(createFormData.lowStockAlert),
+        isActive: createFormData.isActive,
       };
 
-      console.log('Submitting data:', submitData); // Debug log
+      console.log('Creating stock:', submitData);
 
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('/api/admin/stock', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -159,24 +161,67 @@ export default function StockPage() {
       });
 
       const data = await response.json();
-      console.log('Response data:', data); // Debug log
+      console.log('Create response:', data);
 
       if (response.ok) {
-        setMessage({ 
-          type: 'success', 
-          text: selectedStock 
-            ? 'Stock mis à jour avec succès' 
-            : 'Stock créé avec succès' 
-        });
-        setDialogOpen(false);
-        resetForm();
+        toast.success('Stock créé avec succès');
+        setCreateDialogOpen(false);
+        resetCreateForm();
         fetchStock();
       } else {
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la sauvegarde' });
+        toast.error(data.error || 'Erreur lors de la création');
       }
     } catch (error) {
-      console.error('Submit error:', error);
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      console.error('Create error:', error);
+      toast.error('Erreur de connexion');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // NEW: Handle edit stock (ADD new sales only)
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedStock) return;
+
+    setLoading(true);
+
+    try {
+      const newSales = parseInt(editFormData.newSales) || 0;
+      
+      // Calculate new values
+      const newSoldQuantity = (selectedStock.soldQuantity || 0) + newSales;
+      const newCurrentQuantity = selectedStock.currentQuantity - newSales;
+
+      const submitData = {
+        soldQuantity: newSoldQuantity,
+        currentQuantity: newCurrentQuantity,
+      };
+
+      console.log('Updating stock with new sales:', submitData);
+
+      const response = await fetch(`/api/admin/stock/${selectedStock._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submitData),
+      });
+
+      const data = await response.json();
+      console.log('Update response:', data);
+
+      if (response.ok) {
+        toast.success(`${newSales} vente(s) WhatsApp ajoutée(s) avec succès`);
+        setEditDialogOpen(false);
+        resetEditForm();
+        fetchStock();
+      } else {
+        toast.error(data.error || 'Erreur lors de la mise à jour');
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error('Erreur de connexion');
     } finally {
       setLoading(false);
     }
@@ -191,46 +236,51 @@ export default function StockPage() {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Stock supprimé avec succès' });
+        toast.success('Stock supprimé avec succès');
         setDeleteDialogOpen(false);
         setSelectedStock(null);
         fetchStock();
       } else {
         const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la suppression' });
+        toast.error(data.error || 'Erreur lors de la suppression');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion');
     }
   };
 
-  const resetForm = () => {
-    setFormData({
+  // NEW: Reset create form
+  const resetCreateForm = () => {
+    setCreateFormData({
       product: '',
       initialQuantity: 0,
       currentQuantity: 0,
       lowStockAlert: 5,
       isActive: true,
     });
+  };
+
+  // NEW: Reset edit form
+  const resetEditForm = () => {
+    setEditFormData({
+      newSales: 0, // Changed from soldQuantity to newSales
+    });
     setSelectedStock(null);
   };
 
   const openCreateDialog = () => {
-    resetForm();
-    setDialogOpen(true);
+    resetCreateForm();
+    setCreateDialogOpen(true);
   };
 
+  // NEW: Open edit dialog with sales data
   const openEditDialog = (stockItem) => {
-    console.log('Editing stock item:', stockItem); // Debug log
+    console.log('Editing stock item:', stockItem);
     setSelectedStock(stockItem);
-    setFormData({
-      product: stockItem.product?._id || stockItem.product || '',
-      initialQuantity: stockItem.initialQuantity || 0,
-      currentQuantity: stockItem.currentQuantity || stockItem.initialQuantity || 0,
-      lowStockAlert: stockItem.lowStockAlert || 5,
-      isActive: stockItem.isActive !== undefined ? stockItem.isActive : true,
+    setEditFormData({
+      newSales: 0, // Start with 0 new sales
     });
-    setDialogOpen(true);
+    setEditDialogOpen(true);
   };
 
   const openDeleteDialog = (stockItem) => {
@@ -266,7 +316,8 @@ export default function StockPage() {
     return 'text-green-600';
   };
 
-  const columns = [
+  // Enhanced columns for better information display
+   const columns = [
     {
       key: 'product',
       header: 'Produit',
@@ -277,62 +328,71 @@ export default function StockPage() {
         }
         
         return (
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 min-w-[200px]">
             {product.mainImage || product.images?.[0] ? (
               <Image 
                 src={product.mainImage || product.images[0]} 
                 alt={product.name}
                 width={40}
                 height={40}
-                className="w-10 h-10 rounded-md object-cover"
+                className="w-10 h-10 rounded-md object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
                 <PackageIcon className="w-5 h-5 text-muted-foreground" />
               </div>
             )}
-            <div>
-              <div className="font-medium">{product.name}</div>
-              <div className="text-sm text-muted-foreground">{product.model}</div>
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-sm truncate">{product.name}</div>
+              {/* <div className="text-xs text-muted-foreground truncate">
+                SKU: {product.sku || 'N/A'}
+              </div> */}
+              <div className="text-xs text-blue-600 font-medium">
+                {product.price?.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })}
+              </div>
             </div>
           </div>
         );
       },
     },
     {
-      key: 'quantities',
-      header: 'Quantités',
+      key: 'stockInfo',
+      header: 'Quantité du Stock',
       cell: (stockItem) => (
-        <div className="space-y-1">
-          <div className="flex justify-between text-sm">
-            <span>Actuelle:</span>
-            <span className={getQuantityColor(stockItem.currentQuantity, stockItem.lowStockAlert)}>
-              {stockItem.currentQuantity || 0}
+        <div className="space-y-2 min-w-[120px]">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Initial:</span>
+            <span className="text-sm font-semibold text-blue-600">
+              {stockItem.initialQuantity || 0}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span>Vendue:</span>
-            <span className="text-blue-600">{stockItem.soldQuantity || 0}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Vendu:</span>
+            <span className="text-sm font-medium text-orange-600">
+              {stockItem.soldQuantity || 0}
+            </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span>Initiale:</span>
-            <span className="text-gray-600">{stockItem.initialQuantity || 0}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Restant:</span>
+            <span className={`text-sm font-semibold ${
+              stockItem.currentQuantity === 0 
+                ? 'text-red-600' 
+                : stockItem.currentQuantity <= (stockItem.lowStockAlert || 5)
+                ? 'text-orange-600'
+                : 'text-green-600'
+            }`}>
+              {stockItem.currentQuantity || 0}
+            </span>
           </div>
         </div>
       ),
     },
     {
       key: 'status',
-      header: 'Statut Stock',
-      cell: (stockItem) => getStatusBadge(stockItem),
-    },
-    {
-      key: 'alert',
-      header: 'Alerte',
+      header: 'Stock',
       cell: (stockItem) => (
-        <div className="text-center">
-          <div className="text-sm font-medium">{stockItem.lowStockAlert || 5}</div>
-          <div className="text-xs text-muted-foreground">Seuil</div>
+        <div className="flex flex-col items-start space-y-1 min-w-[100px]">
+          {getStatusBadge(stockItem)}
         </div>
       ),
     },
@@ -341,26 +401,99 @@ export default function StockPage() {
       header: 'Statut',
       cell: (stockItem) => (
         <div className="flex items-center space-x-2">
-          <Switch
-            checked={stockItem.isActive !== undefined ? stockItem.isActive : true}
-            onCheckedChange={() => handleStatusToggle(stockItem)}
-            className="data-[state=checked]:bg-green-500"
-          />
-          <Badge variant={stockItem.isActive ? "default" : "secondary"}>
-            {stockItem.isActive ? "Active" : "Inactive"}
-          </Badge>
+          {updatingStatus[stockItem._id] ? (
+            <div className="w-11 h-6 flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <Switch
+              checked={stockItem.isActive !== undefined ? stockItem.isActive : true}
+              onCheckedChange={() => handleStatusToggle(stockItem)}
+              className="data-[state=checked]:bg-green-500"
+            />
+          )}
+          <div className="flex items-center space-x-2">
+            <div className={`w-2 h-2 rounded-full ${
+              stockItem.isActive ? 'bg-green-500' : 'bg-gray-400'
+            }`} />
+            <span className="text-sm text-muted-foreground">
+              {stockItem.isActive ? 'Actif' : 'Inactif'}
+            </span>
+          </div>
         </div>
       ),
     },
+    {
+      key: 'performance',
+      header: 'Performance',
+      cell: (stockItem) => {
+        const initialQuantity = stockItem.initialQuantity || 0;
+        const soldQuantity = stockItem.soldQuantity || 0;
+        const sellThroughRate = initialQuantity > 0 ? (soldQuantity / initialQuantity) * 100 : 0;
+        
+        return (
+          <div className="space-y-2 min-w-[120px]">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Taux vente:</span>
+              <span className={`text-sm font-medium ${
+                sellThroughRate > 50 ? 'text-green-600' : 
+                sellThroughRate > 20 ? 'text-orange-600' : 'text-red-600'
+              }`}>
+                {sellThroughRate.toFixed(1)}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div 
+                className={`h-1.5 rounded-full ${
+                  sellThroughRate > 50 ? 'bg-green-500' : 
+                  sellThroughRate > 20 ? 'bg-orange-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${Math.min(sellThroughRate, 100)}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Seuil:</span>
+              <span className="text-xs font-medium">
+                {stockItem.lowStockAlert || 5}
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
   ];
 
-  // Filter products that don't already have stock
+  // Calculate enhanced stats
+  const totalCurrentQuantity = stock.reduce((sum, item) => sum + (item.currentQuantity || 0), 0);
+  const totalSoldQuantity = stock.reduce((sum, item) => sum + (item.soldQuantity || 0), 0);
+  const totalInitialQuantity = stock.reduce((sum, item) => sum + (item.initialQuantity || 0), 0);
+  const totalValue = stock.reduce((sum, item) => {
+    const productPrice = item.product?.price || 0;
+    return sum + (productPrice * (item.currentQuantity || 0));
+  }, 0);
+  
+  const lowStockItems = stock.filter(s => {
+    const status = s.status || 
+      (s.currentQuantity === 0 ? 'out_of_stock' : 
+       s.currentQuantity <= (s.lowStockAlert || 5) ? 'low_stock' : 'in_stock');
+    return status === 'low_stock';
+  });
+  
+  const outOfStockItems = stock.filter(s => {
+    const status = s.status || 
+      (s.currentQuantity === 0 ? 'out_of_stock' : 
+       s.currentQuantity <= (s.lowStockAlert || 5) ? 'low_stock' : 'in_stock');
+    return status === 'out_of_stock';
+  });
+
+  const activeStockItems = stock.filter(s => s.isActive !== false);
+
+  // Filter products that don't already have stock (for create modal)
   const availableProducts = products.filter(product => 
     !stock.some(stockItem => {
       const stockProductId = stockItem.product?._id || stockItem.product;
       return stockProductId === product._id;
-    }) || 
-    (selectedStock && (selectedStock.product?._id || selectedStock.product) === product._id)
+    })
   );
 
   return (
@@ -380,92 +513,142 @@ export default function StockPage() {
           </Button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-6">
+        {/* Enhanced Stats - Compact Version */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <Card className="border-border bg-card">
+            <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Produits</p>
-                  <p className="text-2xl font-bold">{stock.length}</p>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-medium text-muted-foreground">Stock Actuel</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                    {totalCurrentQuantity.toLocaleString('fr-FR')}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">
+                    {stock.length} produit(s)
+                  </p>
                 </div>
-                <PackageIcon className="w-8 h-8 text-blue-500" />
+                <PackageIcon className="w-5 h-5 text-green-500" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
+
+          <Card className="border-border bg-card">
+            <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">En Stock</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {stock.filter(s => {
-                      const status = s.status || 
-                        (s.currentQuantity === 0 ? 'out_of_stock' : 
-                         s.currentQuantity <= (s.lowStockAlert || 5) ? 'low_stock' : 'in_stock');
-                      return status === 'in_stock';
-                    }).length}
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-medium text-muted-foreground">Ventes Totales</p>
+                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                    {totalSoldQuantity.toLocaleString('fr-FR')}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">
+                    {totalInitialQuantity > 0 ? 
+                      `${((totalSoldQuantity / totalInitialQuantity) * 100).toFixed(1)}%` 
+                      : '0%'
+                    } taux
                   </p>
                 </div>
-                <CheckCircleIcon className="w-8 h-8 text-green-500" />
+                <TrendingUpIcon className="w-5 h-5 text-blue-500" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
+
+          <Card className="border-border bg-card">
+            <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Stock Faible</p>
-                  <p className="text-2xl font-bold text-orange-600">
-                    {stock.filter(s => {
-                      const status = s.status || 
-                        (s.currentQuantity === 0 ? 'out_of_stock' : 
-                         s.currentQuantity <= (s.lowStockAlert || 5) ? 'low_stock' : 'in_stock');
-                      return status === 'low_stock';
-                    }).length}
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-medium text-muted-foreground">Valeur Stock</p>
+                  <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                    {totalValue.toLocaleString('fr-FR')}
                   </p>
+                  <p className="text-[9px] text-muted-foreground">MAD</p>
                 </div>
-                <AlertTriangleIcon className="w-8 h-8 text-orange-500" />
+                <CoinsIcon className="w-5 h-5 text-purple-500" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
+
+          <Card className="border-border bg-card">
+            <CardContent className="px-3 -py-2">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Rupture</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {stock.filter(s => {
-                      const status = s.status || 
-                        (s.currentQuantity === 0 ? 'out_of_stock' : 
-                         s.currentQuantity <= (s.lowStockAlert || 5) ? 'low_stock' : 'in_stock');
-                      return status === 'out_of_stock';
-                    }).length}
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-medium text-muted-foreground">Alertes</p>
+                  <div className="flex items-center space-x-1.5">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                      <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                        {lowStockItems.length}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                      <span className="text-xs font-bold text-red-600 dark:text-red-400">
+                        {outOfStockItems.length}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">
+                    Faible / Rupture
                   </p>
                 </div>
-                <XCircleIcon className="w-8 h-8 text-red-500" />
+                <AlertTriangleIcon className="w-5 h-5 text-orange-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Message Alert */}
-        {message.text && (
-          <div className={`p-4 rounded-lg ${
-            message.type === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}>
-            {message.text}
-          </div>
-        )}
+        {/* Quick Status Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <Card className="border-border bg-card">
+            <CardContent className="px-3 py-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-xs font-medium">En Stock</span>
+                </div>
+                <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400 text-xs">
+                  {stock.length - lowStockItems.length - outOfStockItems.length}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-border bg-card">
+            <CardContent className="px-3 py-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span className="text-xs font-medium">Stock Faible</span>
+                </div>
+                <Badge variant="outline" className="bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400 text-xs">
+                  {lowStockItems.length}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-border bg-card">
+            <CardContent className="px-3 py-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-xs font-medium">Rupture</span>
+                </div>
+                <Badge variant="outline" className="bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400 text-xs">
+                  {outOfStockItems.length}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Stock DataTable */}
+        {/* Enhanced Stock DataTable */}
         <Card>
           <CardHeader>
-            <CardTitle>Liste du Stock</CardTitle>
+            <CardTitle>Vue d'ensemble du Stock</CardTitle>
             <CardDescription>
-              {stock.length} produit(s) en stock • {stock.filter(s => s.isActive !== false).length} active(s)
+              {stock.length} produit(s) • {activeStockItems.length} actif(s) • 
+              Stock total: {totalCurrentQuantity} unités • 
+              Ventes: {totalSoldQuantity} unités
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -504,27 +687,21 @@ export default function StockPage() {
           </CardContent>
         </Card>
 
-        {/* Create/Edit Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        {/* CREATE STOCK DIALOG */}
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>
-                {selectedStock ? 'Modifier le Stock' : 'Nouveau Stock'}
-              </DialogTitle>
+              <DialogTitle>Nouveau Stock</DialogTitle>
               <DialogDescription>
-                {selectedStock 
-                  ? 'Modifiez les informations du stock' 
-                  : 'Ajoutez un nouveau stock pour un produit'
-                }
+                Ajoutez un nouveau stock pour un produit
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="product">Produit *</Label>
                 <Select
-                  value={formData.product}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, product: value }))}
-                  disabled={!!selectedStock}
+                  value={createFormData.product}
+                  onValueChange={(value) => setCreateFormData(prev => ({ ...prev, product: value }))}
                   required
                 >
                   <SelectTrigger className="w-full">
@@ -533,18 +710,18 @@ export default function StockPage() {
                   <SelectContent>
                     {availableProducts.map((product) => (
                       <SelectItem key={product._id} value={product._id}>
-                        {product.name} - {product.model}
+                        {product.name} - {product.sku}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {availableProducts.length === 0 && !selectedStock && (
+                {availableProducts.length === 0 && (
                   <p className="text-sm text-red-600">
                     Tous les produits ont déjà du stock ou aucun produit n&apos;est disponible
                   </p>
                 )}
               </div>
-              
+          
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="initialQuantity">Quantité Initiale *</Label>
@@ -552,8 +729,15 @@ export default function StockPage() {
                     id="initialQuantity"
                     type="number"
                     min="0"
-                    value={formData.initialQuantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, initialQuantity: parseInt(e.target.value) || 0 }))}
+                    value={createFormData.initialQuantity}
+                    onChange={(e) => {
+                      const initial = parseInt(e.target.value) || 0;
+                      setCreateFormData(prev => ({ 
+                        ...prev, 
+                        initialQuantity: initial,
+                        currentQuantity: initial // Auto-set current to initial
+                      }));
+                    }}
                     required
                   />
                 </div>
@@ -564,8 +748,9 @@ export default function StockPage() {
                     id="currentQuantity"
                     type="number"
                     min="0"
-                    value={formData.currentQuantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, currentQuantity: parseInt(e.target.value) || 0 }))}
+                    max={createFormData.initialQuantity}
+                    value={createFormData.currentQuantity}
+                    onChange={(e) => setCreateFormData(prev => ({ ...prev, currentQuantity: parseInt(e.target.value) || 0 }))}
                     required
                   />
                 </div>
@@ -577,8 +762,8 @@ export default function StockPage() {
                   id="lowStockAlert"
                   type="number"
                   min="1"
-                  value={formData.lowStockAlert}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lowStockAlert: parseInt(e.target.value) || 5 }))}
+                  value={createFormData.lowStockAlert}
+                  onChange={(e) => setCreateFormData(prev => ({ ...prev, lowStockAlert: parseInt(e.target.value) || 5 }))}
                 />
                 <p className="text-sm text-muted-foreground">
                   Alerte lorsque le stock atteint cette quantité
@@ -588,27 +773,143 @@ export default function StockPage() {
               <div className="flex items-center space-x-2">
                 <Switch
                   id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                  checked={createFormData.isActive}
+                  onCheckedChange={(checked) => setCreateFormData(prev => ({ ...prev, isActive: checked }))}
                 />
                 <Label htmlFor="isActive">
                   Stock actif
                 </Label>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Le stock inactif ne sera pas pris en compte dans les alertes
-              </p>
 
               <DialogFooter className="mt-6">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setDialogOpen(false)}
+                  onClick={() => setCreateDialogOpen(false)}
                 >
                   Annuler
                 </Button>
-                <Button type="submit" disabled={loading || (!selectedStock && availableProducts.length === 0)}>
-                  {loading ? 'Enregistrement...' : selectedStock ? 'Modifier' : 'Créer'}
+                <Button type="submit" disabled={loading || availableProducts.length === 0}>
+                  {loading ? 'Création...' : 'Créer'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* EDIT STOCK DIALOG (SALES ONLY) */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Ajouter des Ventes WhatsApp</DialogTitle>
+              <DialogDescription>
+                Ajoutez de nouvelles ventes WhatsApp pour {selectedStock?.product?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              {/* Product Info (Readonly) */}
+              <div className="space-y-2">
+                <Label>Produit</Label>
+                <div className="p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center space-x-3">
+                    {selectedStock?.product?.mainImage || selectedStock?.product?.images?.[0] ? (
+                      <Image 
+                        src={selectedStock.product.mainImage || selectedStock.product.images[0]} 
+                        alt={selectedStock.product.name}
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center">
+                        <PackageIcon className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-medium text-foreground">{selectedStock?.product?.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        Stock initial: {selectedStock?.initialQuantity || 0}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Current Stock Summary */}
+              <div className="bg-primary/5 p-3 rounded-lg border border-border">
+                <h4 className="text-sm font-semibold text-foreground mb-2">État Actuel du Stock</h4>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="text-center">
+                    <div className="text-primary font-bold">{selectedStock?.initialQuantity || 0}</div>
+                    <div className="text-muted-foreground text-xs">Initial</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-green-600 dark:text-green-400 font-bold">{selectedStock?.currentQuantity || 0}</div>
+                    <div className="text-muted-foreground text-xs">Actuel</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-orange-600 dark:text-orange-400 font-bold">{selectedStock?.soldQuantity || 0}</div>
+                    <div className="text-muted-foreground text-xs">Déjà Vendu</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* NEW SALES Input */}
+              <div className="space-y-2">
+                <Label htmlFor="newSales">Nouvelles Ventes WhatsApp *</Label>
+                <Input
+                  id="newSales"
+                  type="number"
+                  min="0"
+                  max={selectedStock?.currentQuantity || 0}
+                  value={editFormData.newSales || 0}
+                  onChange={(e) => {
+                    const newSales = parseInt(e.target.value) || 0;
+                    const currentStock = selectedStock?.currentQuantity || 0;
+                    
+                    // Validate: new sales can't exceed current stock
+                    const validatedNewSales = Math.min(newSales, currentStock);
+                    
+                    setEditFormData({ newSales: validatedNewSales });
+                  }}
+                  required
+                />
+                <p className="text-sm text-muted-foreground">
+                  Saisissez le nombre de nouvelles ventes (max: {selectedStock?.currentQuantity || 0} unités disponibles)
+                </p>
+                
+                {/* Preview of new values */}
+                {selectedStock && (
+                  <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded border border-green-200 dark:border-green-800">
+                    <h5 className="text-sm font-semibold text-green-800 dark:text-green-400 mb-2">Résultat après mise à jour:</h5>
+                    <div className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Nouveau stock actuel:</span>
+                        <strong>{selectedStock.currentQuantity - (editFormData.newSales || 0)}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total vendu:</span>
+                        <strong>{(selectedStock.soldQuantity || 0) + (editFormData.newSales || 0)}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Nouvelles ventes ajoutées:</span>
+                        <strong>{editFormData.newSales || 0}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditDialogOpen(false)}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={loading || (editFormData.newSales || 0) === 0}>
+                  {loading ? 'Mise à jour...' : 'Ajouter les Ventes'}
                 </Button>
               </DialogFooter>
             </form>
@@ -765,6 +1066,23 @@ export default function StockPage() {
       </Sheet>
 
     </AdminLayout>
+  );
+}
+
+// Add the new icon components
+function TrendingUpIcon(props) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    </svg>
+  );
+}
+
+function CoinsIcon(props) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
   );
 }
 

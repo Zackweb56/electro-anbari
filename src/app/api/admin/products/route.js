@@ -1,8 +1,9 @@
+// src/app/api/admin/products/route.js
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import Product from '@/models/Product';
-await connectDB();
+import Stock from '@/models/Stock';
 
 export async function GET() {
   try {
@@ -14,9 +15,20 @@ export async function GET() {
     const products = await Product.find()
       .populate('brand', 'name logo isActive')
       .populate('category', 'name image isActive')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return Response.json(products);
+    const productsWithStockCounts = await Promise.all(
+      products.map(async (product) => {
+        const stockCount = await Stock.countDocuments({ product: product._id });
+        return {
+          ...product,
+          stockCount
+        };
+      })
+    );
+
+    return Response.json(productsWithStockCounts);
   } catch (error) {
     console.error('Error fetching products:', error);
     return Response.json({ error: 'Erreur serveur' }, { status: 500 });

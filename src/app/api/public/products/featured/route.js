@@ -5,39 +5,21 @@ import Category from '@/models/Category';
 import Brand from '@/models/Brand';
 import Stock from '@/models/Stock';
 
-export async function GET(request) {
+export async function GET() {
   try {
     await dbConnect();
 
-    // Get query parameters
-    const { searchParams } = new URL(request.url);
-    const featured = searchParams.get('featured');
-    const limit = parseInt(searchParams.get('limit')) || null;
-    const inStockOnly = searchParams.get('inStock') !== 'false'; // Default to true
-
-    // Build query
-    let query = { isActive: true };
-    
-    // Add featured filter if requested
-    if (featured === 'true') {
-      query.isFeatured = true;
-    }
-
-    // Build the find operation
-    let findOperation = Product.find(query)
+    const products = await Product.find({ 
+      isActive: true,
+      isFeatured: true 
+    })
       .populate('category', 'name image isActive')
       .populate('brand', 'name logo isActive')
       .select('name slug description price comparePrice images mainImage category brand specifications features sku isActive isFeatured')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(8); // Limit to 8 featured products
 
-    // Add limit if specified
-    if (limit) {
-      findOperation = findOperation.limit(limit);
-    }
-
-    const products = await findOperation;
-
-    // Get stock information for each product
+    // Récupérer les stocks pour chaque produit
     const productsWithStock = await Promise.all(
       products.map(async (product) => {
         const stock = await Stock.findOne({ 
@@ -45,7 +27,7 @@ export async function GET(request) {
           isActive: true 
         });
         
-        const productData = {
+        return {
           _id: product._id,
           name: product.name,
           slug: product.slug,
@@ -73,25 +55,14 @@ export async function GET(request) {
             lowStockAlert: 5
           }
         };
-
-        return productData;
       })
     );
 
-    // Filter products based on stock availability if requested
-    const filteredProducts = inStockOnly 
-      ? productsWithStock.filter(product => 
-          product.stock && 
-          product.stock.currentQuantity > 0 && 
-          product.stock.status !== 'out_of_stock'
-        )
-      : productsWithStock;
-
-    return NextResponse.json(filteredProducts);
+    return NextResponse.json(productsWithStock);
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error('Error fetching featured products:', error);
     return NextResponse.json(
-      { error: 'Erreur lors de la récupération des produits' },
+      { error: 'Erreur lors de la récupération des produits populaires' },
       { status: 500 }
     );
   }

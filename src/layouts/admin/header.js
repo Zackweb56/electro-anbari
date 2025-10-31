@@ -1,7 +1,9 @@
 'use client';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +14,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-export default function AdminHeader() {
+export default function AdminHeader({ onMenuToggle }) {
   const { data: session } = useSession();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleLogout = () => {
     signOut({ callbackUrl: '/admin/login' });
@@ -29,14 +32,53 @@ export default function AdminHeader() {
       .slice(0, 2);
   };
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      console.log('Recherche:', searchQuery);
+    }
+  };
+
   return (
     <header className="bg-card border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
-          {/* i want to add a globar search bar here with suggestions after 3 carachters */}
+        <div className="flex items-center justify-between py-4">
+          {/* Left: Burger Menu Button */}
+          <div className="flex items-center lg:hidden">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onMenuToggle}
+              className="h-8 w-8 bg-background border-border"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </Button>
+          </div>
 
+          {/* Center: Search Bar */}
+          <div className="flex-1 max-w-md mx-4">
+            <form onSubmit={handleSearch} className="relative">
+              <Input
+                type="text"
+                placeholder="Rechercher..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pr-10"
+              />
+              <button
+                type="submit"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <SearchIcon className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+
+          {/* Right: User Dropdown */}
           <div className="flex items-center space-x-4">
-            <span className="hidden sm:inline text-sm text-muted-foreground">
+            <span className="hidden lg:inline text-sm text-muted-foreground whitespace-nowrap">
               Bienvenue, {session?.user?.name}
             </span>
             
@@ -48,7 +90,7 @@ export default function AdminHeader() {
                       src={session?.user?.image} 
                       alt={session?.user?.name || 'Utilisateur'} 
                     />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
@@ -67,16 +109,16 @@ export default function AdminHeader() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                <Link href="/admin/profile">
+                  <Link href="/admin/profile" className="flex items-center w-full">
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Profil</span>
-                </Link>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                <Link href="/admin/configurations">
+                  <Link href="/admin/configurations" className="flex items-center w-full">
                     <SettingsIcon className="mr-2 h-4 w-4" />
                     <span>Configuration</span>
-                </Link>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
@@ -92,6 +134,15 @@ export default function AdminHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+// Ajouter l'icône de recherche
+function SearchIcon(props) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
   );
 }
 

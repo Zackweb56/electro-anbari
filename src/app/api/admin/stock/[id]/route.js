@@ -26,15 +26,21 @@ export async function GET(request, { params }) {
   }
 }
 
-// �🟠 PUT - Update stock entry
+// 🟠 PUT - Update stock entry
 export async function PUT(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session)
       return Response.json({ error: "Non autorisé" }, { status: 401 });
 
-    const { product, initialQuantity, currentQuantity, lowStockAlert, isActive } =
-      await request.json();
+    const { 
+      product, 
+      initialQuantity, 
+      currentQuantity, 
+      soldQuantity, // ADD THIS
+      lowStockAlert, 
+      isActive 
+    } = await request.json();
 
     await connectDB();
 
@@ -51,11 +57,26 @@ export async function PUT(request, { params }) {
     if (!stock)
       return Response.json({ error: "Stock non trouvé" }, { status: 404 });
 
+    // Update fields
     stock.product = product ?? stock.product;
     stock.initialQuantity = initialQuantity ?? stock.initialQuantity;
     stock.currentQuantity = currentQuantity ?? stock.currentQuantity;
+    stock.soldQuantity = soldQuantity ?? stock.soldQuantity; // ADD THIS
     stock.lowStockAlert = lowStockAlert ?? stock.lowStockAlert;
     stock.isActive = isActive ?? stock.isActive;
+
+    // Validate that soldQuantity doesn't exceed initialQuantity
+    if (stock.soldQuantity > stock.initialQuantity) {
+      return Response.json(
+        { error: "La quantité vendue ne peut pas dépasser la quantité initiale" },
+        { status: 400 }
+      );
+    }
+
+    // Auto-calculate currentQuantity if not provided
+    if (currentQuantity === undefined && soldQuantity !== undefined) {
+      stock.currentQuantity = stock.initialQuantity - stock.soldQuantity;
+    }
 
     stock.updateStatus();
     await stock.save();

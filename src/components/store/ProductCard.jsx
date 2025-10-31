@@ -1,11 +1,78 @@
-import { useState } from 'react';
+"use client";
+
+import { useState, useEffect } from 'react'; // Added useEffect
 import Image from 'next/image';
 import Link from 'next/link';
-import { FaShoppingCart, FaWhatsapp } from 'react-icons/fa';
+import { FaShoppingCart, FaWhatsapp, FaSpinner } from 'react-icons/fa';
+
+// Cart utilities (you can move this to a separate file later)
+const cartUtils = {
+  getCart: () => {
+    if (typeof window === 'undefined') return []
+    return JSON.parse(localStorage.getItem('cart') || '[]')
+  },
+
+  addToCart: async (product, quantity = 1) => {
+    try {
+      // Validate stock via API
+      const stockResponse = await fetch(`/api/public/products/${product.slug}`)
+      const stockData = await stockResponse.json()
+      
+      if (!stockData.success || !stockData.product) {
+        throw new Error('Produit non disponible')
+      }
+
+      const currentStock = stockData.product.stock?.currentQuantity || 0
+      
+      if (currentStock < quantity) {
+        throw new Error(`Stock insuffisant. Il reste ${currentStock} unité(s)`)
+      }
+
+      // Add to localStorage cart
+      const cart = cartUtils.getCart()
+      const existingItem = cart.find(item => item.id === product._id)
+
+      if (existingItem) {
+        const newQuantity = existingItem.quantity + quantity
+        if (newQuantity > currentStock) {
+          throw new Error(`Quantité maximale atteinte. Stock: ${currentStock}`)
+        }
+        existingItem.quantity = newQuantity
+      } else {
+        cart.push({
+          id: product._id,
+          slug: product.slug,
+          name: product.name,
+          price: product.price,
+          comparePrice: product.comparePrice,
+          image: product.mainImage || product.images?.[0],
+          quantity: quantity,
+          maxStock: currentStock,
+          brand: product.brand?.name,
+          category: product.category?.name,
+          specifications: product.specifications
+        })
+      }
+
+      localStorage.setItem('cart', JSON.stringify(cart))
+      return { success: true, cart }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  },
+
+  getCartCount: () => {
+    const cart = cartUtils.getCart()
+    return cart.reduce((total, item) => total + item.quantity, 0)
+  }
+};
 
 export default function ProductCard({ product }) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [cartMessage, setCartMessage] = useState('');
+  const [whatsappUrl, setWhatsappUrl] = useState('#'); // Initialize with '#'
 
   const handleImageLoad = () => {
     setImageLoading(false);
@@ -28,7 +95,7 @@ export default function ProductCard({ product }) {
       case 'low_stock':
         return { text: `Stock faible (${currentQuantity})`, color: 'text-orange-600', bg: 'bg-orange-100' };
       case 'in_stock':
-        return { text: 'En stock', color: 'text-green-600', bg: 'bg-green-100' };
+        return { text: `En stock (${currentQuantity})`, color: 'text-green-600', bg: 'bg-green-100' };
       default:
         return { text: 'Stock indisponible', color: 'text-red-600', bg: 'bg-red-100' };
     }
@@ -37,23 +104,55 @@ export default function ProductCard({ product }) {
   const stockStatus = getStockStatus();
   const displayImage = product.mainImage || (product.images && product.images[0]);
 
-  // WhatsApp message text with relevant product details
-  const whatsappMessage = encodeURIComponent(
-    `Bonjour, je souhaite commander ce produit :\n` +
-    `Nom: ${product.name}\n` +
-    `Prix: ${product.price} MAD\n` +
-    (product.stock && product.stock.currentQuantity !== undefined ? `Quantité en stock: ${product.stock.currentQuantity}\n` : '') +
-    `Lien produit: https://yourdomain.com/product/${product.slug}`
-  );
+  // Set WhatsApp URL after component mounts (client-side only)
+  useEffect(() => {
+    const message = encodeURIComponent(
+      `Bonjour, je souhaite commander ce produit :\n` +
+      `Nom: ${product.name}\n` +
+      `Prix: ${product.price} MAD\n` +
+      (product.comparePrice ? `Prix de comparaison: ${product.comparePrice} MAD\n` : '') +
+      (product.stock && product.stock.currentQuantity !== undefined ? `Quantité en stock: ${product.stock.currentQuantity}\n` : '') +
+      `Lien produit: ${window.location.origin}/product/${product.slug}`
+    );
 
-  const whatsappNumber = '+212771615622';
-  const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/[^\d]/g, '')}?text=${whatsappMessage}`;
+    const whatsappNumber = '+212771615622';
+    setWhatsappUrl(`https://wa.me/${whatsappNumber.replace(/[^\d]/g, '')}?text=${message}`);
+  }, [product]); // Add product as dependency
 
-  // Handle add to cart (static for now)
-  const handleAddToCart = (e) => {
+  // Handle add to cart with validation
+  const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    alert(`Produit "${product.name}" ajouté au panier (fonctionnalité à venir)`);
+    
+    // Don't add to cart if out of stock
+    if (product.stock?.status === 'out_of_stock') {
+      setCartMessage('Produit en rupture de stock');
+      setTimeout(() => setCartMessage(''), 3000);
+      return;
+    }
+
+    setAddingToCart(true);
+    setCartMessage('');
+    
+    try {
+      const result = await cartUtils.addToCart(product, 1);
+      
+      if (result.success) {
+        setCartMessage('✅ Produit ajouté au panier!');
+        // Trigger cart update in header and other components
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('cartUpdated'));
+        }
+      } else {
+        setCartMessage(`❌ ${result.error}`);
+      }
+    } catch (error) {
+      setCartMessage('❌ Erreur lors de l\'ajout au panier');
+      console.error('Cart error:', error);
+    } finally {
+      setAddingToCart(false);
+      setTimeout(() => setCartMessage(''), 3000);
+    }
   };
 
   // Calculate discount percentage if comparePrice exists
@@ -61,6 +160,9 @@ export default function ProductCard({ product }) {
   const discountPercentage = hasDiscount 
     ? Math.round((1 - product.price / product.comparePrice) * 100)
     : 0;
+
+  // Check if product can be added to cart
+  const canAddToCart = product.stock?.status !== 'out_of_stock';
 
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group product-card">
@@ -142,8 +244,9 @@ export default function ProductCard({ product }) {
         {/* Action buttons */}
         <div className="flex space-x-2 mt-3">
           {/* WhatsApp button */}
-          <a
+          <Link
             href={whatsappUrl}
+            passHref
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
@@ -151,17 +254,39 @@ export default function ProductCard({ product }) {
           >
             <FaWhatsapp className="w-4 h-4 mr-2" />
             WhatsApp
-          </a>
+          </Link>
 
           {/* Add to cart button */}
           <button
             onClick={handleAddToCart}
-            className="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-            aria-label="Ajouter au panier"
+            disabled={addingToCart || !canAddToCart}
+            className={`inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              canAddToCart
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+            } ${addingToCart ? 'opacity-70 cursor-wait' : ''}`}
+            aria-label={canAddToCart ? "Ajouter au panier" : "Produit indisponible"}
+            title={canAddToCart ? "Ajouter au panier" : "Produit en rupture de stock"}
           >
-            <FaShoppingCart className="w-4 h-4" />
+            {addingToCart ? (
+              <FaSpinner className="w-4 h-4 animate-spin" />
+            ) : (
+              <FaShoppingCart className="w-4 h-4" />
+            )}
           </button>
         </div>
+        
+        {/* Cart message */}
+        {cartMessage && (
+          <div className={`mt-2 text-xs text-center p-2 rounded transition-all duration-300 ${
+            cartMessage.includes('✅') 
+              ? 'bg-green-100 text-green-700 border border-green-200' 
+              : 'bg-red-100 text-red-700 border border-red-200'
+          }`}>
+            {cartMessage}
+          </div>
+        )}
+
       </div>
     </div>
   );

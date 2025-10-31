@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Switch } from '@/components/ui/switch'; // Add this import
+import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { FaTrash } from 'react-icons/fa';
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState([]);
@@ -38,9 +40,9 @@ export default function BrandsPage() {
   const [formData, setFormData] = useState({
     name: '',
     logo: '',
-    isActive: true, // Add isActive to form data
+    isActive: true,
   });
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
   useEffect(() => {
     fetchBrands();
@@ -53,17 +55,20 @@ export default function BrandsPage() {
       if (response.ok) {
         const data = await response.json();
         setBrands(data);
+      } else {
+        toast.error('Erreur lors du chargement des marques');
       }
     } catch (error) {
       console.error('Error fetching brands:', error);
-      setMessage({ type: 'error', text: 'Erreur lors du chargement des marques' });
+      toast.error('Erreur de connexion lors du chargement des marques');
     } finally {
       setLoading(false);
     }
   };
 
-  // Add this function to handle status toggle
   const handleStatusToggle = async (brand) => {
+    setUpdatingStatus(brand._id);
+    
     try {
       const response = await fetch(`/api/admin/brands/${brand._id}`, {
         method: 'PUT',
@@ -77,24 +82,22 @@ export default function BrandsPage() {
       });
 
       if (response.ok) {
-        setMessage({ 
-          type: 'success', 
-          text: `Marque ${!brand.isActive ? 'activée' : 'désactivée'} avec succès` 
-        });
-        fetchBrands(); // Refresh the list
+        toast.success(`Marque ${!brand.isActive ? 'activée' : 'désactivée'} avec succès`);
+        fetchBrands();
       } else {
         const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la modification' });
+        toast.error(data.error || 'Erreur lors de la modification du statut');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion lors de la modification du statut');
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       const url = selectedBrand 
@@ -114,20 +117,19 @@ export default function BrandsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ 
-          type: 'success', 
-          text: selectedBrand 
+        toast.success(
+          selectedBrand 
             ? 'Marque mise à jour avec succès' 
-            : 'Marque créée avec succès' 
-        });
+            : 'Marque créée avec succès'
+        );
         setDialogOpen(false);
         resetForm();
         fetchBrands();
       } else {
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la sauvegarde' });
+        toast.error(data.error || 'Erreur lors de la sauvegarde');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion lors de la sauvegarde');
     } finally {
       setLoading(false);
     }
@@ -141,17 +143,19 @@ export default function BrandsPage() {
         method: 'DELETE',
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Marque supprimée avec succès' });
+        toast.success('Marque supprimée avec succès');
         setDeleteDialogOpen(false);
         setSelectedBrand(null);
         fetchBrands();
       } else {
-        const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la suppression' });
+        // This will catch the 400 error when brand has products
+        toast.error(data.error || 'Erreur lors de la suppression');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion lors de la suppression');
     }
   };
 
@@ -184,7 +188,11 @@ export default function BrandsPage() {
     setDeleteDialogOpen(true);
   };
 
-  // Updated DataTable columns configuration with switch
+  // Helper function to check if brand can be deleted
+  const canDeleteBrand = (brand) => {
+    return !brand.productCount || brand.productCount === 0;
+  };
+
   const columns = [
     {
       key: 'logo',
@@ -210,15 +218,34 @@ export default function BrandsPage() {
       header: 'Nom',
     },
     {
+      key: 'productCount',
+      header: 'Produits Associés',
+      cell: (brand) => (
+        <Badge 
+          variant={brand.productCount > 0 ? "default" : "secondary"}
+          className={brand.productCount > 0 ? "bg-blue-500" : ""}
+        >
+          {brand.productCount || 0} produit(s)
+        </Badge>
+      ),
+    },
+    {
       key: 'isActive',
       header: 'Statut',
       cell: (brand) => (
         <div className="flex items-center space-x-2">
-          <Switch
-            checked={brand.isActive}
-            onCheckedChange={() => handleStatusToggle(brand)}
-            className="data-[state=checked]:bg-green-500"
-          />
+          {updatingStatus === brand._id ? (
+            <div className="w-11 h-6 flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <Switch
+              checked={brand.isActive}
+              onCheckedChange={() => handleStatusToggle(brand)}
+              disabled={updatingStatus === brand._id}
+              className="data-[state=checked]:bg-green-500"
+            />
+          )}
           <Badge variant={brand.isActive ? "default" : "secondary"}>
             {brand.isActive ? "Active" : "Inactive"}
           </Badge>
@@ -244,17 +271,6 @@ export default function BrandsPage() {
           </Button>
         </div>
 
-        {/* Message Alert */}
-        {message.text && (
-          <div className={`p-4 rounded-lg ${
-            message.type === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}>
-            {message.text}
-          </div>
-        )}
-
         {/* Brands DataTable */}
         <Card>
           <CardHeader>
@@ -279,6 +295,7 @@ export default function BrandsPage() {
                 searchKey="name"
                 onEdit={openEditDialog}
                 onDelete={openDeleteDialog}
+                canDelete={canDeleteBrand}
               />
             ) : (
               <div className="text-center py-12">
@@ -321,28 +338,38 @@ export default function BrandsPage() {
                 />
               </div>
               
-                <div className="space-y-2">
+              <div className="space-y-2">
                 <Label>Logo de la marque</Label>
                 <ImageUpload
-                    value={formData.logo}
-                    onChange={(url) => setFormData(prev => ({ ...prev, logo: url }))}
-                    buttonText="Upload Logo"
-                    multiple={false} // Explicitly set to false
+                  value={formData.logo}
+                  onChange={(url) => setFormData(prev => ({ ...prev, logo: url }))}
+                  buttonText="Upload Logo"
+                  multiple={false}
                 />
                 {formData.logo && (
-                    <div className="mt-2">
-                    <Image 
+                  <div className="mt-2 relative inline-block">
+                    <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded-md">
+                      <Image 
                         src={formData.logo} 
                         alt="Logo preview" 
                         width={80}
                         height={80}
                         className="w-20 h-20 object-cover rounded-md"
-                    />
+                        onLoad={() => console.log('Image loaded')}
+                        onError={() => console.log('Image failed to load')}
+                      />
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, logo: '' }))}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <FaTrash className="w-3 h-3" />
+                    </button>
+                  </div>
                 )}
-                </div>
+              </div>
 
-              {/* Add Switch for isActive in the form */}
               <div className="flex items-center space-x-2">
                 <Switch
                   id="isActive"
@@ -362,11 +389,19 @@ export default function BrandsPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setDialogOpen(false)}
+                  disabled={loading}
                 >
                   Annuler
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? 'Enregistrement...' : selectedBrand ? 'Modifier' : 'Créer'}
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                      {selectedBrand ? 'Modification...' : 'Création...'}
+                    </>
+                  ) : (
+                    selectedBrand ? 'Modifier' : 'Créer'
+                  )}
                 </Button>
               </DialogFooter>
             </form>
@@ -377,20 +412,42 @@ export default function BrandsPage() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Supprimer la marque</AlertDialogTitle>
-              <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer la marque &quot;<b>{selectedBrand?.name}</b>&quot; ?
-                Cette action ne peut pas être annulée.
+              <AlertDialogTitle>
+                {selectedBrand?.productCount > 0 
+                  ? 'Suppression impossible' 
+                  : 'Supprimer la marque'
+                }
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                {selectedBrand?.productCount > 0 ? (
+                  <div className="space-y-2">
+                    <p>
+                      La marque &quot;<b>{selectedBrand?.name}</b>&quot; est liée à{' '}
+                      <b>{selectedBrand?.productCount} produit(s)</b>.
+                    </p>
+                    <p className="text-amber-600 font-medium">
+                      Supprimez d'abord les produits associés.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    Êtes-vous sûr de vouloir supprimer la marque &quot;<b>{selectedBrand?.name}</b>&quot; ?
+                    <br />
+                    Cette action ne peut pas être annulée.
+                  </div>
+                )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Supprimer
-              </AlertDialogAction>
+              {selectedBrand?.productCount === 0 && (
+                <AlertDialogAction 
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Supprimer
+                </AlertDialogAction>
+              )}
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -399,7 +456,7 @@ export default function BrandsPage() {
   );
 }
 
-// Icon Components (keep the same)
+// Icon Components
 function PlusIcon(props) {
   return (
     <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Switch } from '@/components/ui/switch'; // Add this import
+import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
+import { toast } from 'sonner';
+import { FaTrash } from 'react-icons/fa';
 import {
   Dialog,
   DialogContent,
@@ -38,9 +40,9 @@ export default function CategoriesPage() {
   const [formData, setFormData] = useState({
     name: '',
     image: '',
-    isActive: true, // Add isActive to form data
+    isActive: true,
   });
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
   useEffect(() => {
     fetchCategories();
@@ -53,17 +55,20 @@ export default function CategoriesPage() {
       if (response.ok) {
         const data = await response.json();
         setCategories(data);
+      } else {
+        toast.error('Erreur lors du chargement des catégories');
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
-      setMessage({ type: 'error', text: 'Erreur lors du chargement des catégories' });
+      toast.error('Erreur de connexion lors du chargement des catégories');
     } finally {
       setLoading(false);
     }
   };
 
-  // Add this function to handle status toggle
   const handleStatusToggle = async (category) => {
+    setUpdatingStatus(category._id);
+    
     try {
       const response = await fetch(`/api/admin/categories/${category._id}`, {
         method: 'PUT',
@@ -77,24 +82,22 @@ export default function CategoriesPage() {
       });
 
       if (response.ok) {
-        setMessage({ 
-          type: 'success', 
-          text: `Catégorie ${!category.isActive ? 'activée' : 'désactivée'} avec succès` 
-        });
-        fetchCategories(); // Refresh the list
+        toast.success(`Catégorie ${!category.isActive ? 'activée' : 'désactivée'} avec succès`);
+        fetchCategories();
       } else {
         const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la modification' });
+        toast.error(data.error || 'Erreur lors de la modification du statut');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion lors de la modification du statut');
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       const url = selectedCategory 
@@ -114,20 +117,19 @@ export default function CategoriesPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ 
-          type: 'success', 
-          text: selectedCategory 
+        toast.success(
+          selectedCategory 
             ? 'Catégorie mise à jour avec succès' 
-            : 'Catégorie créée avec succès' 
-        });
+            : 'Catégorie créée avec succès'
+        );
         setDialogOpen(false);
         resetForm();
         fetchCategories();
       } else {
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la sauvegarde' });
+        toast.error(data.error || 'Erreur lors de la sauvegarde');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion lors de la sauvegarde');
     } finally {
       setLoading(false);
     }
@@ -141,17 +143,18 @@ export default function CategoriesPage() {
         method: 'DELETE',
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Catégorie supprimée avec succès' });
+        toast.success('Catégorie supprimée avec succès');
         setDeleteDialogOpen(false);
         setSelectedCategory(null);
         fetchCategories();
       } else {
-        const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Erreur lors de la suppression' });
+        toast.error(data.error || 'Erreur lors de la suppression');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erreur de connexion' });
+      toast.error('Erreur de connexion lors de la suppression');
     }
   };
 
@@ -184,7 +187,10 @@ export default function CategoriesPage() {
     setDeleteDialogOpen(true);
   };
 
-  // Updated DataTable columns configuration with switch
+  const canDeleteCategory = (category) => {
+    return !category.productCount || category.productCount === 0;
+  };
+
   const columns = [
     {
       key: 'image',
@@ -210,15 +216,34 @@ export default function CategoriesPage() {
       header: 'Nom',
     },
     {
+      key: 'productCount',
+      header: 'Produits Associés',
+      cell: (category) => (
+        <Badge 
+          variant={category.productCount > 0 ? "default" : "secondary"}
+          className={category.productCount > 0 ? "bg-blue-500" : ""}
+        >
+          {category.productCount || 0} produit(s)
+        </Badge>
+      ),
+    },
+    {
       key: 'isActive',
       header: 'Statut',
       cell: (category) => (
         <div className="flex items-center space-x-2">
-          <Switch
-            checked={category.isActive}
-            onCheckedChange={() => handleStatusToggle(category)}
-            className="data-[state=checked]:bg-green-500"
-          />
+          {updatingStatus === category._id ? (
+            <div className="w-11 h-6 flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <Switch
+              checked={category.isActive}
+              onCheckedChange={() => handleStatusToggle(category)}
+              disabled={updatingStatus === category._id}
+              className="data-[state=checked]:bg-green-500"
+            />
+          )}
           <Badge variant={category.isActive ? "default" : "secondary"}>
             {category.isActive ? "Active" : "Inactive"}
           </Badge>
@@ -244,17 +269,6 @@ export default function CategoriesPage() {
           </Button>
         </div>
 
-        {/* Message Alert */}
-        {message.text && (
-          <div className={`p-4 rounded-lg ${
-            message.type === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}>
-            {message.text}
-          </div>
-        )}
-
         {/* Categories DataTable */}
         <Card>
           <CardHeader>
@@ -279,6 +293,7 @@ export default function CategoriesPage() {
                 searchKey="name"
                 onEdit={openEditDialog}
                 onDelete={openDeleteDialog}
+                canDelete={canDeleteCategory}
               />
             ) : (
               <div className="text-center py-12">
@@ -321,28 +336,36 @@ export default function CategoriesPage() {
                 />
               </div>
               
-                <div className="space-y-2">
+              <div className="space-y-2">
                 <Label>Image de la catégorie</Label>
                 <ImageUpload
-                    value={formData.image}
-                    onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
-                    buttonText="Upload Image"
-                    multiple={false} // Explicitly set to false
+                  value={formData.image}
+                  onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                  buttonText="Upload Image"
+                  multiple={false}
                 />
                 {formData.image && (
-                    <div className="mt-2">
-                    <Image 
+                  <div className="mt-2 relative inline-block">
+                    <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded-md">
+                      <Image 
                         src={formData.image} 
                         alt="Image preview" 
                         width={80}
                         height={80}
                         className="w-20 h-20 object-cover rounded-md"
-                    />
+                      />
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <FaTrash className="w-3 h-3" />
+                    </button>
+                  </div>
                 )}
-                </div>
+              </div>
 
-              {/* Add Switch for isActive in the form */}
               <div className="flex items-center space-x-2">
                 <Switch
                   id="isActive"
@@ -362,11 +385,19 @@ export default function CategoriesPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setDialogOpen(false)}
+                  disabled={loading}
                 >
                   Annuler
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? 'Enregistrement...' : selectedCategory ? 'Modifier' : 'Créer'}
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                      {selectedCategory ? 'Modification...' : 'Création...'}
+                    </>
+                  ) : (
+                    selectedCategory ? 'Modifier' : 'Créer'
+                  )}
                 </Button>
               </DialogFooter>
             </form>
@@ -377,20 +408,45 @@ export default function CategoriesPage() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Supprimer la catégorie</AlertDialogTitle>
-              <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer la catégorie &quot;<b>{selectedCategory?.name}</b>&quot; ?
-                Cette action ne peut pas être annulée.
-              </AlertDialogDescription>
+              <AlertDialogTitle>
+                {selectedCategory?.productCount > 0 
+                  ? 'Suppression impossible' 
+                  : 'Supprimer la catégorie'
+                }
+              </AlertDialogTitle>
             </AlertDialogHeader>
+            
+            {/* Remplacer AlertDialogDescription par un div régulier */}
+            <div className="text-sm text-muted-foreground">
+              {selectedCategory?.productCount > 0 ? (
+                <div className="space-y-2">
+                  <p>
+                    La catégorie &quot;<b>{selectedCategory?.name}</b>&quot; est liée à{' '}
+                    <b>{selectedCategory?.productCount} produit(s)</b>.
+                  </p>
+                  <p className="text-amber-600 font-medium">
+                    Supprimez d'abord les produits associés.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  Êtes-vous sûr de vouloir supprimer la catégorie &quot;<b>{selectedCategory?.name}</b>&quot; ?
+                  <br />
+                  Cette action ne peut pas être annulée.
+                </div>
+              )}
+            </div>
+            
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Supprimer
-              </AlertDialogAction>
+              {selectedCategory?.productCount === 0 && (
+                <AlertDialogAction 
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Supprimer
+                </AlertDialogAction>
+              )}
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

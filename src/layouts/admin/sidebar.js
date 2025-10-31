@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-// SVG Icons
+// SVG Icons (garder le même code)
 const Icons = {
   Tableau: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,10 +44,9 @@ const Icons = {
   ),
 };
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ isMobileOpen, onClose }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [activeLink, setActiveLink] = useState(null);
 
   useEffect(() => {
@@ -61,45 +60,58 @@ export default function AdminSidebar() {
     { href: '/admin/products', label: 'Produits', icon: Icons.Produits },
     { href: '/admin/stock', label: 'Gestion de Stock', icon: Icons.Stock },
     { href: '/admin/orders', label: 'Commandes', icon: Icons.Commandes },
-    { href: '/admin/reports', label: 'Rapports', icon: Icons.Rapports },
   ];
+
+  // Fonction de fermeture par défaut si onClose n'est pas fourni
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  const handleItemClick = (href) => {
+    setActiveLink(href);
+    handleClose(); // Fermer le menu mobile après clic
+    router.push(href);
+  };
 
   return (
     <>
-      {/* Mobile menu button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-background border-border"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </Button>
-
       {/* Overlay */}
       {isMobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setIsMobileOpen(false)}
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={handleClose}
         />
       )}
 
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:static inset-y-0 left-0 z-40
+          fixed lg:static inset-y-0 left-0 z-50
           w-64 bg-card border-r border-border text-card-foreground transform transition-transform duration-300 ease-in-out
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        {/* Header */}
-        <div className="p-4 border-b border-border">
-          <h1 className="text-xl font-bold text-card-foreground">Electro Anbari Store</h1>
-          <p className="text-[11px] text-muted-foreground mt-1 leading-tight">
-            Gestion de Magasin d&apos;Ordinateurs
-          </p>
+        {/* Header avec bouton fermer sur mobile */}
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-card-foreground">Electro Anbari Store</h1>
+            <p className="text-[11px] text-muted-foreground mt-1 leading-tight">
+              Gestion de Magasin d&apos;Ordinateurs
+            </p>
+          </div>
+          {/* Bouton fermer - visible seulement sur mobile */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleClose}
+            className="lg:hidden h-8 w-8"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </Button>
         </div>
 
         {/* Menu */}
@@ -117,11 +129,7 @@ export default function AdminSidebar() {
                         ? 'bg-secondary text-secondary-foreground'
                         : 'text-card-foreground hover:bg-accent hover:text-accent-foreground'
                     }`}
-                    onClick={() => {
-                      setActiveLink(item.href);
-                      setIsMobileOpen(false);
-                      router.push(item.href);
-                    }}
+                    onClick={() => handleItemClick(item.href)}
                   >
                     <span className="flex-shrink-0 mr-3">{item.icon}</span>
                     <span className="font-medium flex-1 text-left">{item.label}</span>

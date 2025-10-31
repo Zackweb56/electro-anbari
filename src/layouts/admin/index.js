@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -10,6 +11,7 @@ import AdminFooter from './footer';
 export default function AdminLayout({ children }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -35,15 +37,26 @@ export default function AdminLayout({ children }) {
     return null;
   }
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <AdminSidebar />
+      <AdminSidebar 
+        isMobileOpen={isMobileMenuOpen} 
+        onClose={closeMobileMenu} 
+      />
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col lg:ml-0 min-w-0">
         {/* Header */}
-        <AdminHeader />
+        <AdminHeader onMenuToggle={toggleMobileMenu} />
         
         {/* Main Content */}
         <AdminMain>

@@ -11,7 +11,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, Plus, Upload, Star } from 'lucide-react';
+import { X, Plus, Star } from 'lucide-react';
+import { FaTrash } from 'react-icons/fa';
 import Image from 'next/image';
 
 export default function ProductForm({ product, onSuccess, onCancel }) {
@@ -20,6 +21,8 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeTab, setActiveTab] = useState('basic');
+  const [validationErrors, setValidationErrors] = useState({});
+  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -56,8 +59,8 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
         comparePrice: product.comparePrice || '',
         images: product.images || [],
         mainImage: product.mainImage || (product.images && product.images.length > 0 ? product.images[0] : ''),
-        brand: product.brand?._id || '',
-        category: product.category?._id || '',
+        brand: product.brand?._id || product.brand || '', // Handle both object and ID
+        category: product.category?._id || product.category || '', // Handle both object and ID
         specifications: product.specifications || {
           processor: '',
           ram: '',
@@ -75,30 +78,76 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
   }, [product]);
 
   const fetchDropdownData = async () => {
+    setLoadingDropdowns(true);
     try {
       const [brandsResponse, categoriesResponse] = await Promise.all([
         fetch('/api/admin/brands/active'),
         fetch('/api/admin/categories/active')
       ]);
 
+      let brandsData = [];
+      let categoriesData = [];
+
       if (brandsResponse.ok) {
-        const brandsData = await brandsResponse.json();
+        brandsData = await brandsResponse.json();
         setBrands(brandsData);
+      } else {
+        console.error('Failed to fetch brands');
       }
 
       if (categoriesResponse.ok) {
-        const categoriesData = await categoriesResponse.json();
+        categoriesData = await categoriesResponse.json();
         setCategories(categoriesData);
+      } else {
+        console.error('Failed to fetch categories');
+      }
+
+      // If we have a product, ensure brand and category are set correctly after data is loaded
+      if (product) {
+        setFormData(prev => ({
+          ...prev,
+          brand: product.brand?._id || product.brand || prev.brand,
+          category: product.category?._id || product.category || prev.category
+        }));
       }
     } catch (error) {
       console.error('Error fetching dropdown data:', error);
+      setMessage({ type: 'error', text: 'Erreur lors du chargement des marques et catégories' });
+    }finally {
+      setLoadingDropdowns(false);
     }
+  };
+
+  const clearFieldError = (fieldName) => {
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[fieldName];
+      return newErrors;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: '', text: '' });
+    setValidationErrors({});
+
+    // Validation
+    const errors = {};
+    
+    if (!formData.name.trim()) errors.name = 'Le nom du produit est requis';
+    if (!formData.description.trim()) errors.description = 'La description est requise';
+    if (!formData.price || parseFloat(formData.price) <= 0) errors.price = 'Le prix doit être supérieur à 0';
+    if (!formData.brand) errors.brand = 'La marque est requise';
+    if (!formData.category) errors.category = 'La catégorie est requise';
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setLoading(false);
+      setMessage({ type: 'error', text: 'Veuillez corriger les erreurs dans le formulaire' });
+      setActiveTab('basic'); // Go back to basic tab to show errors
+      return;
+    }
 
     try {
       const url = product 
@@ -248,10 +297,17 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                 <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Ex: MacBook Pro 14\"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, name: e.target.value }));
+                  clearFieldError('name');
+                }}
+                placeholder="Ex: MacBook Pro 14"
                 required
+                className={validationErrors.name ? 'border-red-500 focus:border-red-500' : ''}
                 />
+                {validationErrors.name && (
+                  <p className="text-red-500 text-sm">{validationErrors.name}</p>
+                )}
             </div>
 
             <div className="space-y-2">
@@ -269,45 +325,72 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                 <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, description: e.target.value }));
+                  clearFieldError('description');
+                }}
                 placeholder="Description détaillée du produit..."
                 rows={4}
                 required
+                className={validationErrors.description ? 'border-red-500 focus:border-red-500' : ''}
                 />
+                {validationErrors.description && (
+                  <p className="text-red-500 text-sm">{validationErrors.description}</p>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              {/* Brand Select */}
+              <div className="space-y-2">
                 <Label htmlFor="brand">Marque *</Label>
-                <Select value={formData.brand} onValueChange={(value) => setFormData(prev => ({ ...prev, brand: value }))}>
-                    <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sélectionnez une marque" />
-                    </SelectTrigger>
-                    <SelectContent>
+                <Select 
+                  value={formData.brand} 
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ ...prev, brand: value }));
+                    clearFieldError('brand');
+                  }}
+                >
+                  <SelectTrigger className={`w-full ${validationErrors.brand ? 'border-red-500 focus:border-red-500' : ''}`}>
+                    <SelectValue placeholder={loadingDropdowns ? "Chargement..." : "Sélectionnez une marque"} />
+                  </SelectTrigger>
+                  <SelectContent>
                     {brands.map((brand) => (
-                        <SelectItem key={brand._id} value={brand._id}>
+                      <SelectItem key={brand._id} value={brand._id}>
                         {brand.name}
-                        </SelectItem>
+                      </SelectItem>
                     ))}
-                    </SelectContent>
+                  </SelectContent>
                 </Select>
-                </div>
+                {validationErrors.brand && (
+                  <p className="text-red-500 text-sm">{validationErrors.brand}</p>
+                )}
+              </div>
 
-                <div className="space-y-2">
+              {/* Category Select */}
+              <div className="space-y-2">
                 <Label htmlFor="category">Catégorie *</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                    <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sélectionnez une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
+                <Select 
+                  value={formData.category} 
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ ...prev, category: value }));
+                    clearFieldError('category');
+                  }}
+                >
+                  <SelectTrigger className={`w-full ${validationErrors.category ? 'border-red-500 focus:border-red-500' : ''}`}>
+                    <SelectValue placeholder={loadingDropdowns ? "Chargement..." : "Sélectionnez une catégorie"} />
+                  </SelectTrigger>
+                  <SelectContent>
                     {categories.map((category) => (
-                        <SelectItem key={category._id} value={category._id}>
+                      <SelectItem key={category._id} value={category._id}>
                         {category.name}
-                        </SelectItem>
+                      </SelectItem>
                     ))}
-                    </SelectContent>
+                  </SelectContent>
                 </Select>
-                </div>
+                {validationErrors.category && (
+                  <p className="text-red-500 text-sm">{validationErrors.category}</p>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -319,10 +402,17 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                     step="0.01"
                     min="0"
                     value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, price: e.target.value }));
+                      clearFieldError('price');
+                    }}
                     placeholder="99.99"
                     required
+                    className={validationErrors.price ? 'border-red-500 focus:border-red-500' : ''}
                 />
+                {validationErrors.price && (
+                  <p className="text-red-500 text-sm">{validationErrors.price}</p>
+                )}
                 </div>
 
                 <div className="space-y-2">
@@ -343,98 +433,130 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
 
         {/* Media Tab */}
         <TabsContent value="media" className="space-y-4">
-        <div className="space-y-4">
-      <div>
-      <Label>Images du produit</Label>
-      <p className="text-sm text-muted-foreground mb-4">
-        Cliquez sur une image pour la définir comme image principale. L&apos;image principale a une bordure verte.
-      </p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="space-y-4">
+            <div>
+              <Label>Images du produit</Label>
+              <p className="text-sm text-muted-foreground mb-4">
+                Cliquez sur une image pour la définir comme image principale. L&apos;image principale a une bordure verte.
+              </p>
+              
+              {/* Images Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-4">
                 {formData.images.map((image, index) => (
-                <div 
+                  <div 
                     key={index} 
-                    className="relative cursor-pointer transition-all duration-200"
+                    className="relative cursor-pointer transition-all duration-200 group"
                     onClick={() => setAsMainImage(image)}
-                >
-                    <Image 
-                    src={image} 
-                    alt={`Product image ${index + 1}`}
-                    className={`w-full h-24 object-cover rounded-lg border-2 transition-all duration-200 ${
-                        formData.mainImage === image 
-                        ? 'border-green-500 shadow-md scale-105' 
-                        : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
-                    }`}
-                    />
-                    
-                    {/* Main Image Badge - Always visible when active */}
-                    {formData.mainImage === image && (
-                    <div className="absolute top-1 left-1 bg-green-500 text-white rounded-full p-1 shadow-sm">
-                        <Star className="w-3 h-3 fill-current" />
+                  >
+                    {/* Image Container */}
+                    <div className="relative bg-gray-100 rounded-lg overflow-hidden aspect-square">
+                      <Image 
+                        src={image} 
+                        width={150}
+                        height={150}
+                        alt={`Product image ${index + 1}`}
+                        className={`w-full h-full object-cover transition-all duration-200 ${
+                          formData.mainImage === image 
+                            ? 'border-2 border-green-500 shadow-md' 
+                            : 'border border-gray-200'
+                        }`}
+                        onLoad={(e) => {
+                          // Hide loading when image is loaded
+                          e.target.parentElement.querySelector('.image-loading')?.classList.add('hidden');
+                        }}
+                        onError={(e) => {
+                          // Hide loading on error too
+                          e.target.parentElement.querySelector('.image-loading')?.classList.add('hidden');
+                        }}
+                      />
+                      
+                      {/* Loading Overlay - Hidden by default when image loads */}
+                      <div className="image-loading absolute inset-0 bg-gray-100 flex items-center justify-center">
+                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      
+                      {/* Main Image Badge */}
+                      {formData.mainImage === image && (
+                        <div className="absolute top-2 left-2 bg-green-500 text-white rounded-full p-1 shadow-sm">
+                          <Star className="w-3 h-3 fill-current" />
+                        </div>
+                      )}
+                      
+                      {/* Remove Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage(index);
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 transition-colors"
+                      >
+                        <FaTrash className="w-3 h-3" />
+                      </button>
+                      
+                      {/* Image Index */}
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white text-xs px-1.5 py-0.5 rounded">
+                        {index + 1}
+                      </div>
                     </div>
-                    )}
-                    
-                    {/* Remove Button - Always visible on mobile, show on hover on desktop */}
-                    <button
-                    type="button"
-                    onClick={(e) => {
-                        e.stopPropagation(); // Prevent triggering the main image selection
-                        removeImage(index);
-                    }}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
-                    >
-                    <X className="w-3 h-3" />
-                    </button>
-                    
-                    {/* Image Index */}
-                    <div className="absolute bottom-1 left-1 bg-black bg-opacity-70 text-white text-xs px-1 rounded text-xs">
-                    {index + 1}
-                    </div>
-                </div>
+                  </div>
                 ))}
-            </div>
-            
-            <ImageUpload
+              </div>
+              
+              {/* Image Upload */}
+              <ImageUpload
                 onMultipleUpload={(urls) => {
-                setFormData(prev => ({
+                  setFormData(prev => ({
                     ...prev,
                     images: [...prev.images, ...urls],
-                    // Set as main image if it's the first one or if no main image is set
                     mainImage: prev.mainImage || (urls.length > 0 ? urls[0] : '')
-                }));
+                  }));
                 }}
                 buttonText="Ajouter des images"
                 multiple={true}
                 maxFiles={10}
-            />
-            
-            <p className="text-xs text-muted-foreground mt-2">
+              />
+              
+              <p className="text-xs text-muted-foreground mt-2">
                 {formData.images.length} image(s) téléchargée(s)
-            </p>
+              </p>
             </div>
 
             {/* Main Image Preview */}
             {formData.mainImage && (
-      <div className="mt-6 p-4 border rounded-lg bg-muted/20">
-        <Label className="text-base font-medium">Aperçu de l&apos;image principale</Label>
+              <div className="mt-6 p-4 border rounded-lg bg-muted/20">
+                <Label className="text-base font-medium">Aperçu de l&apos;image principale</Label>
                 <div className="mt-3 flex flex-col items-center">
-                <Image 
-                    src={formData.mainImage} 
-                    alt="Image principale"
-                    className="max-w-full md:max-w-xs max-h-48 object-contain rounded-lg border"
-                />
-                <p className="text-center text-sm text-muted-foreground mt-3">
+                  <div className="relative bg-gray-100 rounded-lg overflow-hidden max-w-xs aspect-square">
+                    <Image 
+                      src={formData.mainImage} 
+                      width={200}
+                      height={200}
+                      alt="Image principale"
+                      className="w-full h-full object-contain"
+                      onLoad={(e) => {
+                        e.target.parentElement.querySelector('.main-image-loading')?.classList.add('hidden');
+                      }}
+                      onError={(e) => {
+                        e.target.parentElement.querySelector('.main-image-loading')?.classList.add('hidden');
+                      }}
+                    />
+                    {/* Loading for main image */}
+                    <div className="main-image-loading absolute inset-0 bg-gray-100 flex items-center justify-center">
+                      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  </div>
+                  <p className="text-center text-sm text-muted-foreground mt-3 max-w-md">
                     Cette image sera affichée comme image principale du produit sur le site
-                </p>
+                  </p>
                 </div>
-            </div>
+              </div>
             )}
-        </div>
+          </div>
         </TabsContent>
 
         {/* Specifications Tab */}
         <TabsContent value="specs" className="space-y-4">
-          {/* ... (keep the specifications section the same) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="processor">Processeur</Label>
@@ -472,7 +594,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                 id="display"
                 value={formData.specifications.display}
                 onChange={(e) => handleSpecificationChange('display', e.target.value)}
-                placeholder="Ex: 14\ Retina"
+                placeholder="Ex: 14' Retina"
               />
             </div>
 
