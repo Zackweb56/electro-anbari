@@ -1,6 +1,6 @@
 // Updated ProductForm.js with multiple image support and main image selection
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,35 +49,8 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
 
   const [newFeature, setNewFeature] = useState('');
 
-  useEffect(() => {
-    fetchDropdownData();
-    if (product) {
-      setFormData({
-        name: product.name || '',
-        description: product.description || '',
-        price: product.price || '',
-        comparePrice: product.comparePrice || '',
-        images: product.images || [],
-        mainImage: product.mainImage || (product.images && product.images.length > 0 ? product.images[0] : ''),
-        brand: product.brand?._id || product.brand || '', // Handle both object and ID
-        category: product.category?._id || product.category || '', // Handle both object and ID
-        specifications: product.specifications || {
-          processor: '',
-          ram: '',
-          storage: '',
-          display: '',
-          graphics: '',
-          operatingSystem: ''
-        },
-        features: product.features || [],
-        sku: product.sku || '',
-        isActive: product.isActive !== undefined ? product.isActive : true,
-        isFeatured: product.isFeatured !== undefined ? product.isFeatured : false
-      });
-    }
-  }, [product]);
-
-  const fetchDropdownData = async () => {
+  // CORRECTION 
+  const fetchDropdownData = useCallback(async () => {
     setLoadingDropdowns(true);
     try {
       const [brandsResponse, categoriesResponse] = await Promise.all([
@@ -113,10 +86,39 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
     } catch (error) {
       console.error('Error fetching dropdown data:', error);
       setMessage({ type: 'error', text: 'Erreur lors du chargement des marques et catégories' });
-    }finally {
+    } finally {
       setLoadingDropdowns(false);
     }
-  };
+  }, [product]); // ← AJOUTER CETTE LIGNE AVEC LES DÉPENDANCES
+
+  // CORRECTION
+  useEffect(() => {
+    fetchDropdownData();
+    if (product) {
+      setFormData({
+        name: product.name || '',
+        description: product.description || '',
+        price: product.price || '',
+        comparePrice: product.comparePrice || '',
+        images: product.images || [],
+        mainImage: product.mainImage || (product.images && product.images.length > 0 ? product.images[0] : ''),
+        brand: product.brand?._id || product.brand || '', // Handle both object and ID
+        category: product.category?._id || product.category || '', // Handle both object and ID
+        specifications: product.specifications || {
+          processor: '',
+          ram: '',
+          storage: '',
+          display: '',
+          graphics: '',
+          operatingSystem: ''
+        },
+        features: product.features || [],
+        sku: product.sku || '',
+        isActive: product.isActive !== undefined ? product.isActive : true,
+        isFeatured: product.isFeatured !== undefined ? product.isFeatured : false
+      });
+    }
+  }, [product, fetchDropdownData]); // ← AJOUTER fetchDropdownData ICI
 
   const clearFieldError = (fieldName) => {
     setValidationErrors(prev => {

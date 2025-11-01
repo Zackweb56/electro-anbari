@@ -128,7 +128,7 @@ export default function ContactInfo() {
         <div className="mt-12 text-center">
             <div className="bg-gray-50 rounded-lg p-6 max-w-2xl mx-auto">
             <h3 className="text-xl font-semibold mb-4 text-gray-900">
-                Besoin d'aide ?
+                Besoin d&apos;aide ?
             </h3>
             <p className="text-gray-600 mb-4">
                 Notre équipe est à votre disposition pour répondre à toutes vos questions.

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function ProductFilters({
   categories,
@@ -14,6 +14,14 @@ export default function ProductFilters({
     max: filters.maxPrice || ''
   });
 
+  // Synchroniser priceRange avec les filtres
+  useEffect(() => {
+    setPriceRange({
+      min: filters.minPrice || '',
+      max: filters.maxPrice || ''
+    });
+  }, [filters.minPrice, filters.maxPrice]);
+
   const handlePriceChange = (type, value) => {
     const newPriceRange = {
       ...priceRange,
@@ -21,12 +29,14 @@ export default function ProductFilters({
     };
     setPriceRange(newPriceRange);
     
-    // Mettre à jour les filtres parent
     onFilterChange('minPrice', newPriceRange.min);
     onFilterChange('maxPrice', newPriceRange.max);
   };
 
   const hasActiveFilters = filters.category || filters.brand || filters.minPrice || filters.maxPrice;
+
+  // Trouver la catégorie sélectionnée pour l'affichage
+  const selectedCategory = categories.find(cat => cat._id === filters.category);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8 filters-sidebar">
@@ -40,6 +50,24 @@ export default function ProductFilters({
         </button>
       </div>
 
+      {/* Indicateur de catégorie sélectionnée depuis le header */}
+      {selectedCategory && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm font-medium text-green-800 mb-1">
+            Catégorie sélectionnée
+          </p>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-green-700">{selectedCategory.name}</span>
+            <button
+              onClick={() => onFilterChange('category', '')}
+              className="text-green-600 hover:text-green-800 text-sm font-medium"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Filtre Catégorie */}
       <div className="mb-6">
         <h3 className="text-sm font-medium text-gray-900 mb-3">Catégorie</h3>
@@ -50,7 +78,7 @@ export default function ProductFilters({
         >
           <option value="">Toutes les catégories</option>
           {categories
-            .filter(cat => cat.isActive) // Utiliser isActive au lieu de active
+            .filter(cat => cat.isActive)
             .map((category) => (
               <option key={category._id} value={category._id}>
                 {category.name}
@@ -70,7 +98,7 @@ export default function ProductFilters({
         >
           <option value="">Toutes les marques</option>
           {brands
-            .filter(brand => brand.isActive) // Utiliser isActive au lieu de active
+            .filter(brand => brand.isActive)
             .map((brand) => (
               <option key={brand._id} value={brand._id}>
                 {brand.name}
@@ -98,7 +126,7 @@ export default function ProductFilters({
             <label className="text-xs text-gray-600 mb-1 block">Prix maximum (MAD)</label>
             <input
               type="number"
-              placeholder="1000"
+              placeholder="10000"
               value={priceRange.max}
               onChange={(e) => handlePriceChange('max', e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"

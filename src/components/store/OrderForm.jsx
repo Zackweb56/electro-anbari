@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function OrderForm({ cartItems, onOrderSuccess }) {
@@ -125,7 +126,7 @@ export default function OrderForm({ cartItems, onOrderSuccess }) {
               <div key={item._id || item.id} className="flex justify-between items-center border-b pb-3">
                 <div className="flex items-center space-x-3">
                   {item.image && (
-                    <img 
+                    <Image fill 
                       src={item.image} 
                       alt={item.name}
                       className="w-12 h-12 object-cover rounded"

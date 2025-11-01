@@ -1,6 +1,6 @@
 // src/components/store/CartDrawer.jsx
 'use client'
-
+import Image from 'next/image';
 import { useState, useEffect } from 'react'
 import { FaTimes, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaWhatsapp, FaSpinner, FaExclamationTriangle, FaCheck, FaCreditCard } from 'react-icons/fa'
 import OrderForm from './OrderForm'
@@ -368,7 +368,7 @@ export default function CartDrawer({ isOpen, onClose, cartItemsCount }) {
                               : 'bg-gray-50 border-gray-200'
                           }`}
                         >
-                          <img
+                          <Image fill
                             src={item.image}
                             alt={item.name}
                             className="w-16 h-16 object-cover rounded-lg flex-shrink-0"

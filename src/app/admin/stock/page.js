@@ -644,7 +644,7 @@ export default function StockPage() {
         {/* Enhanced Stock DataTable */}
         <Card>
           <CardHeader>
-            <CardTitle>Vue d'ensemble du Stock</CardTitle>
+            <CardTitle>Vue d&apos;ensemble du Stock</CardTitle>
             <CardDescription>
               {stock.length} produit(s) • {activeStockItems.length} actif(s) • 
               Stock total: {totalCurrentQuantity} unités • 

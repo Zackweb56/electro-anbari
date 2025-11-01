@@ -3,14 +3,18 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { FaSearch, FaShoppingCart, FaBars, FaTimes } from 'react-icons/fa'
+import { FaSearch, FaShoppingCart, FaBars, FaTimes, FaChevronDown, FaFolder, FaSpinner } from 'react-icons/fa'
 import CartDrawer from '@/components/store/CartDrawer'
+import Image from 'next/image';
 
 export default function StoreHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [cartItemsCount, setCartItemsCount] = useState(0)
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [categories, setCategories] = useState([])
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
+  const [loadingCategories, setLoadingCategories] = useState(true)
   const pathname = usePathname()
 
   // Effet pour détecter le scroll
@@ -22,18 +26,33 @@ export default function StoreHeader() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true)
+        const response = await fetch('/api/public/categories')
+        const data = await response.json()
+        if (data.success) {
+          setCategories(data.categories)
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+    fetchCategories()
+  }, [])
+
   // Listen for cart updates
-  // In your StoreHeader component, add this useEffect:
   useEffect(() => {
     const handleCartUpdate = () => {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]')
       setCartItemsCount(cart.reduce((total, item) => total + item.quantity, 0))
     }
 
-    // Listen for cart updates from ProductCard
     window.addEventListener('cartUpdated', handleCartUpdate)
-    
-    // Initial cart count
     handleCartUpdate()
 
     return () => {
@@ -41,12 +60,22 @@ export default function StoreHeader() {
     }
   }, [])
 
+  // Close categories dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.categories-dropdown')) {
+        setIsCategoriesOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const navigation = [
     { name: 'Accueil', href: '/', current: pathname === '/' },
     { name: 'Boutique', href: '/store', current: pathname === '/store' },
-    { name: 'Catégories', href: '/categories', current: pathname === '/categories' },
-    { name: 'Nouveautés', href: '/new', current: pathname === '/new' },
-    { name: 'Promotions', href: '/sale', current: pathname === '/sale' },
+    { name: 'Contact', href: '/contact', current: pathname === '/contact' },
   ]
 
   return (
@@ -69,7 +98,7 @@ export default function StoreHeader() {
                   <span className="text-white font-bold text-sm">YS</span>
                 </div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300">
-                  EliteShop
+                  Electro Anbari
                 </span>
               </Link>
             </div>
@@ -92,6 +121,63 @@ export default function StoreHeader() {
                   )}
                 </Link>
               ))}
+              
+              {/* Categories Dropdown */}
+              <div className="relative categories-dropdown">
+                <button
+                  onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+                  className={`flex items-center space-x-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isCategoriesOpen || pathname.startsWith('/store?category=')
+                      ? 'text-blue-600 bg-blue-50 font-semibold'
+                      : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <span>Catégories</span>
+                  <FaChevronDown className={`w-3 h-3 transition-transform duration-200 ${
+                    isCategoriesOpen ? 'rotate-180' : ''
+                  }`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isCategoriesOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="max-h-80 overflow-y-auto">
+                      {loadingCategories ? (
+                        <div className="flex items-center justify-center py-4">
+                          <FaSpinner className="w-4 h-4 text-blue-600 animate-spin mr-2" />
+                          <span className="text-sm text-gray-600">Chargement...</span>
+                        </div>
+                      ) : categories.length > 0 ? (
+                        categories.map((category) => (
+                          <Link
+                            key={category._id}
+                            href={`/store?category=${category._id}`}
+                            onClick={() => setIsCategoriesOpen(false)}
+                            className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                          >
+                            {category.image ? (
+                              <Image fill 
+                                src={category.image} 
+                                alt={category.name}
+                                className="w-6 h-6 rounded object-cover"
+                              />
+                            ) : (
+                              <div className="w-6 h-6 bg-gray-100 rounded flex items-center justify-center">
+                                <FaFolder className="w-3 h-3 text-gray-500" />
+                              </div>
+                            )}
+                            <span>{category.name}</span>
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                          Aucune catégorie disponible
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </nav>
 
             {/* Actions */}
@@ -165,6 +251,47 @@ export default function StoreHeader() {
                     {item.name}
                   </Link>
                 ))}
+                
+                {/* Mobile Categories */}
+                <div className="border-t border-gray-200 pt-3 mt-3">
+                  <div className="px-4 py-2 text-sm font-semibold text-gray-500 mb-2">
+                    Catégories
+                  </div>
+                  <div className="space-y-1 max-h-60 overflow-y-auto">
+                    {loadingCategories ? (
+                      <div className="flex items-center justify-center py-4">
+                        <FaSpinner className="w-4 h-4 text-blue-600 animate-spin mr-2" />
+                        <span className="text-sm text-gray-600">Chargement...</span>
+                      </div>
+                    ) : categories.length > 0 ? (
+                      categories.map((category) => (
+                        <Link
+                          key={category._id}
+                          href={`/store?category=${category._id}`}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                        >
+                          {category.image ? (
+                            <Image fill 
+                              src={category.image} 
+                              alt={category.name}
+                              className="w-6 h-6 rounded object-cover"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 bg-gray-100 rounded flex items-center justify-center">
+                              <FaFolder className="w-3 h-3 text-gray-500" />
+                            </div>
+                          )}
+                          <span>{category.name}</span>
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        Aucune catégorie disponible
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Mobile Cart Button */}

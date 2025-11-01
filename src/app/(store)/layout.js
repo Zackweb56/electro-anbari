@@ -5,7 +5,7 @@ import './store.css' // optional custom css for store theme
 import { Toaster } from 'sonner';
 
 export const metadata = {
-  title: 'MyStore - Accueil',
+  title: 'Electro Anbari - Accueil',
   description: 'Bienvenue sur notre boutique en ligne.',
 }
 

@@ -266,7 +266,7 @@ export default function ProductsPage() {
     },
     {
       key: 'isFeatured',
-      header: 'Featured',
+      header: 'Populaire',
       cell: (product) => (
         <div className="flex items-center space-x-2">
           {updatingFeatured === product._id ? (
@@ -403,7 +403,7 @@ export default function ProductsPage() {
                     <b>{selectedProduct?.stockCount} entrée(s) de stock</b>.
                   </p>
                   <p className="text-amber-600 font-medium">
-                    Supprimez d'abord le stock associé.
+                    Supprimez d&apos;abord le stock associé.
                   </p>
                 </div>
               ) : (

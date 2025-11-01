@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ProductGrid from '@/components/store/ProductGrid';
 import ProductFilters from '@/components/store/ProductFilters';
 import { FaSearch } from "react-icons/fa";
 
 export default function StorePage() {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [filters, setFilters] = useState({
-    category: '',
+    category: searchParams.get('category') || '',
     brand: '',
     minPrice: '',
     maxPrice: '',
@@ -30,26 +32,20 @@ export default function StorePage() {
           fetch('/api/public/brands')
         ]);
 
-        // Handle the new API response format
         const productsData = await productsRes.json();
         const categoriesData = await categoriesRes.json();
         const brandsData = await brandsRes.json();
 
-        // Extract data based on API response format
         const productsArray = Array.isArray(productsData) ? productsData : (productsData.products || []);
         const categoriesArray = categoriesData.success ? categoriesData.categories : (categoriesData.categories || []);
         const brandsArray = brandsData.success ? brandsData.brands : (brandsData.brands || []);
 
         // Filter products to only show those with available stock
         const availableProducts = productsArray.filter(product => {
-          // Check if product has stock and it's available
           const hasStock = product.stock && 
                           product.stock.currentQuantity > 0 && 
                           product.stock.status !== 'out_of_stock';
-          
-          // Also check if product is active
           const isActive = product.isActive !== false;
-          
           return hasStock && isActive;
         });
 
@@ -104,6 +100,17 @@ export default function StorePage() {
     setFilteredProducts(filtered);
   }, [products, filters]);
 
+  // Effet pour synchroniser avec les paramètres d'URL
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get('category');
+    if (categoryFromUrl) {
+      setFilters(prev => ({
+        ...prev,
+        category: categoryFromUrl
+      }));
+    }
+  }, [searchParams]);
+
   const handleFilterChange = (filterType, value) => {
     setFilters(prev => ({
       ...prev,
@@ -118,7 +125,20 @@ export default function StorePage() {
       minPrice: '',
       maxPrice: '',
     });
+    // Optionnel: Rediriger vers la page store sans paramètres
+    window.history.replaceState(null, '', '/store');
   };
+
+  const clearCategoryFilter = () => {
+    setFilters(prev => ({
+      ...prev,
+      category: ''
+    }));
+    window.history.replaceState(null, '', '/store');
+  };
+
+  // Trouver la catégorie sélectionnée
+  const selectedCategory = categories.find(cat => cat._id === filters.category);
 
   if (loading) {
     return (
@@ -151,13 +171,37 @@ export default function StorePage() {
           {/* Grille des produits */}
           <div className="flex-1">
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">Notre Boutique</h1>
+              {/* Titre dynamique */}
+              <h1 className="text-3xl font-bold text-gray-900">
+                {selectedCategory ? selectedCategory.name : 'Notre Boutique'}
+              </h1>
               <p className="text-gray-600 mt-2">
-                Découvrez notre collection de produits disponibles
+                {selectedCategory 
+                  ? `Découvrez nos produits dans la catégorie ${selectedCategory.name}`
+                  : 'Découvrez notre collection de produits disponibles'
+                }
               </p>
               
+              {/* Indicateur de filtre de catégorie actif */}
+              {selectedCategory && (
+                <div className="mt-4 flex items-center space-x-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex-1">
+                    <span className="text-sm text-blue-800 font-medium">
+                      Filtre actif : {selectedCategory.name}
+                    </span>
+                  </div>
+                  <button
+                    onClick={clearCategoryFilter}
+                    className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center space-x-1"
+                  >
+                    <span>×</span>
+                    <span>Supprimer</span>
+                  </button>
+                </div>
+              )}
+              
               {/* Results counter */}
-              <div className="mt-4 flex items-center justify-between">
+              <div className={`mt-4 flex items-center justify-between ${selectedCategory ? 'mt-6' : ''}`}>
                 <p className="text-sm text-gray-600">
                   {filteredProducts.length === products.length 
                     ? `${products.length} produit${products.length !== 1 ? 's' : ''} disponible${products.length !== 1 ? 's' : ''}`
@@ -165,7 +209,7 @@ export default function StorePage() {
                   }
                 </p>
                 
-                {filteredProducts.length !== products.length && (
+                {filteredProducts.length !== products.length && !selectedCategory && (
                   <button
                     onClick={clearFilters}
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -187,19 +231,31 @@ export default function StorePage() {
                   Aucun produit trouvé
                 </h3>
                 <p className="text-gray-600 max-w-md mb-6">
-                  {products.length === 0 
-                    ? "Aucun produit n'est actuellement disponible en stock. Revenez bientôt pour découvrir nos nouvelles arrivées!"
-                    : "Aucun produit ne correspond à vos critères de recherche. Essayez de modifier vos filtres ou explorez d'autres catégories."
+                  {selectedCategory 
+                    ? `Aucun produit disponible dans la catégorie "${selectedCategory.name}". Essayez une autre catégorie ou consultez tous nos produits.`
+                    : products.length === 0 
+                      ? "Aucun produit n'est actuellement disponible en stock. Revenez bientôt pour découvrir nos nouvelles arrivées!"
+                      : "Aucun produit ne correspond à vos critères de recherche. Essayez de modifier vos filtres ou explorez d'autres catégories."
                   }
                 </p>
-                {products.length > 0 && (
-                  <button
-                    onClick={clearFilters}
-                    className="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-medium hover:bg-blue-700 active:scale-95 transition-all shadow-md hover:shadow-lg"
-                  >
-                    Effacer tous les filtres
-                  </button>
-                )}
+                <div className="flex space-x-3">
+                  {selectedCategory && (
+                    <button
+                      onClick={clearCategoryFilter}
+                      className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-blue-700 transition-all"
+                    >
+                      Voir tous les produits
+                    </button>
+                  )}
+                  {products.length > 0 && !selectedCategory && (
+                    <button
+                      onClick={clearFilters}
+                      className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-blue-700 transition-all"
+                    >
+                      Effacer tous les filtres
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

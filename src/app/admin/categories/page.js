@@ -425,7 +425,7 @@ export default function CategoriesPage() {
                     <b>{selectedCategory?.productCount} produit(s)</b>.
                   </p>
                   <p className="text-amber-600 font-medium">
-                    Supprimez d'abord les produits associés.
+                    Supprimez d&apos;abord les produits associés.
                   </p>
                 </div>
               ) : (

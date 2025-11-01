@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
 import { Switch } from '@/components/ui/switch';
+import Image from 'next/image';
 import {
   Sheet,
   SheetContent,
@@ -572,7 +573,7 @@ export default function OrdersPage() {
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           {item.productImage ? (
-                            <img 
+                            <Image fill 
                               src={item.productImage} 
                               alt={item.productName}
                               className="w-12 h-12 rounded-md object-cover border"
@@ -697,7 +698,7 @@ export default function OrdersPage() {
               <AlertDialogTitle>Supprimer la commande</AlertDialogTitle>
               <AlertDialogDescription>
                 Êtes-vous sûr de vouloir supprimer la commande &quot;<b>{selectedOrder?.orderNumber}</b>&quot; ?
-                Le stock sera retourné à l'inventaire. Cette action ne peut pas être annulée.
+                Le stock sera retourné à l&apos;inventaire. Cette action ne peut pas être annulée.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
