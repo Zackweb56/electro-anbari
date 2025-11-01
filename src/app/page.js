@@ -1,2 +1,6 @@
 // src/app/page.js
-export { default } from './(store)/page';
+import { redirect } from 'next/navigation';
+
+export default function RootPage() {
+  redirect('/home');
+}
