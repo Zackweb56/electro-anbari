@@ -76,7 +76,7 @@ export default function ProductDetailPage() {
         {/* Fil d'Ariane */}
         <nav className="mb-8">
           <ol className="flex items-center space-x-2 text-sm text-gray-600">
-            <li><Link href="/" className="hover:text-blue-600">Accueil</Link></li>
+            <li><Link href="/home" className="hover:text-blue-600">Accueil</Link></li>
             <li className="text-gray-400">/</li>
             <li><Link href="/store" className="hover:text-blue-600">Boutique</Link></li>
             <li className="text-gray-400">/</li>

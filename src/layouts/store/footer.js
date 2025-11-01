@@ -149,7 +149,7 @@ export default function StoreFooter() {
             <h3 className="text-lg font-semibold mb-6 text-white">Navigation</h3>
             
             <div className="flex flex-col space-y-3 text-sm text-gray-400">
-              <Link href="/" className="hover:text-white transition-colors py-1 hover:translate-x-1 transform duration-200">Accueil</Link>
+              <Link href="/home" className="hover:text-white transition-colors py-1 hover:translate-x-1 transform duration-200">Accueil</Link>
               <Link href="/store" className="hover:text-white transition-colors py-1 hover:translate-x-1 transform duration-200">Boutique</Link>
               <Link href="/about" className="hover:text-white transition-colors py-1 hover:translate-x-1 transform duration-200">À propos</Link>
               <Link href="/contact" className="hover:text-white transition-colors py-1 hover:translate-x-1 transform duration-200">Contact</Link>

@@ -73,7 +73,7 @@ export default function StoreHeader() {
   }, [])
 
   const navigation = [
-    { name: 'Accueil', href: '/', current: pathname === '/' },
+    { name: 'Accueil', href: '/home', current: pathname === '/home' },
     { name: 'Boutique', href: '/store', current: pathname === '/store' },
     { name: 'Contact', href: '/contact', current: pathname === '/contact' },
   ]

@@ -1,21 +1,14 @@
 import Link from 'next/link';
-import ProductCard from '@/components/store/ProductCard';
 import ContactInfo from '@/components/store/ContactInfo';
-
-// React Icons imports
-import { 
-  FaTruck, 
-  FaShieldAlt,
-  FaHeadset, 
-  FaArrowRight,
-  FaArrowCircleRight,
-  FaCrown,
-  FaStar
-} from 'react-icons/fa';
-
 // Composant Slider pour les produits
 import ProductsSlider from '@/components/store/ProductsSlider';
 import BrandsSection from '@/components/store/BrandsSection';
+
+// React Icons imports
+import { 
+  FaArrowRight,
+  FaArrowCircleRight,
+} from 'react-icons/fa';
 
 // Fonctions de récupération des données
 async function getFeaturedProducts() {
@@ -57,9 +50,8 @@ async function getBrands() {
     if (!res.ok) throw new Error('Failed to fetch brands');
     const data = await res.json();
 
-    // Maintenant que votre API retourne directement le tableau, utilisez data directement
-    // Au lieu de data.brands
-    return Array.isArray(data) ? data : [];
+    // CORRECTION : Accédez à data.brands au lieu de data
+    return Array.isArray(data.brands) ? data.brands : [];
   } catch (error) {
     console.error('Error fetching brands:', error);
     return [];
