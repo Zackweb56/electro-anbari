@@ -10,11 +10,17 @@ import {
   FaArrowCircleRight,
 } from 'react-icons/fa';
 
+// ⚠️ ADD THESE TWO LINES - Disable static generation
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Fonctions de récupération des données
 async function getFeaturedProducts() {
   try {
-    const res = await fetch(`https://electro-anbari.vercel.app/api/public/products?featured=true&limit=8`, {
-      next: { revalidate: 60 }
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    
+    const res = await fetch(`${baseUrl}/api/public/products?featured=true&limit=8`, {
+      cache: 'no-store' // ⚠️ CHANGE: Use no-store instead of revalidate
     });
     
     if (!res.ok) throw new Error('Failed to fetch featured products');
@@ -28,8 +34,10 @@ async function getFeaturedProducts() {
 
 async function getLatestProducts() {
   try {
-    const res = await fetch(`https://electro-anbari.vercel.app/api/public/products?limit=8&sort=newest`, {
-      next: { revalidate: 60 }
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    
+    const res = await fetch(`${baseUrl}/api/public/products?limit=8&sort=newest`, {
+      cache: 'no-store' // ⚠️ CHANGE: Use no-store instead of revalidate
     });
     
     if (!res.ok) throw new Error('Failed to fetch latest products');
@@ -43,14 +51,15 @@ async function getLatestProducts() {
 
 async function getBrands() {
   try {
-    const res = await fetch(`https://electro-anbari.vercel.app/api/public/brands`, {
-      next: { revalidate: 3600 }
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    
+    const res = await fetch(`${baseUrl}/api/public/brands`, {
+      cache: 'no-store' // ⚠️ CHANGE: Use no-store instead of revalidate
     });
     
     if (!res.ok) throw new Error('Failed to fetch brands');
     const data = await res.json();
 
-    // CORRECTION : Accédez à data.brands au lieu de data
     return Array.isArray(data.brands) ? data.brands : [];
   } catch (error) {
     console.error('Error fetching brands:', error);
