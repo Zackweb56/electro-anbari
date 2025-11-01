@@ -13,7 +13,7 @@ import {
 // Fonctions de récupération des données
 async function getFeaturedProducts() {
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/public/products?featured=true&limit=8`, {
+    const res = await fetch(`https://electro-anbari.vercel.app/api/public/products?featured=true&limit=8`, {
       next: { revalidate: 60 }
     });
     
@@ -28,7 +28,7 @@ async function getFeaturedProducts() {
 
 async function getLatestProducts() {
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/public/products?limit=8&sort=newest`, {
+    const res = await fetch(`https://electro-anbari.vercel.app/api/public/products?limit=8&sort=newest`, {
       next: { revalidate: 60 }
     });
     
@@ -43,7 +43,7 @@ async function getLatestProducts() {
 
 async function getBrands() {
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/public/brands`, {
+    const res = await fetch(`https://electro-anbari.vercel.app/api/public/brands`, {
       next: { revalidate: 3600 }
     });
     
