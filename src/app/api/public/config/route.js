@@ -25,6 +25,8 @@ export async function GET() {
         address: config.address,
         latitude: config.latitude,      // ← BIEN INCLURE
         longitude: config.longitude,    // ← BIEN INCLURE
+        openingHours: config.openingHours,
+        youtubeVideo: config.youtubeVideo,
         socialMedia: config.socialMedia,
         shippingPolicy: config.shippingPolicy,
         returnPolicy: config.returnPolicy

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'; // Added useEffect
 import Image from 'next/image';
 import Link from 'next/link';
-import { FaShoppingCart, FaWhatsapp, FaSpinner } from 'react-icons/fa';
+import { FaShoppingCart, FaSpinner } from 'react-icons/fa';
+import WhatsAppOrderButton from './WhatsAppOrderButton';
 
 // Cart utilities (you can move this to a separate file later)
 const cartUtils = {
@@ -72,7 +73,7 @@ export default function ProductCard({ product }) {
   const [imageError, setImageError] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartMessage, setCartMessage] = useState('');
-  const [whatsappUrl, setWhatsappUrl] = useState('#'); // Initialize with '#'
+  // WhatsApp handled by WhatsAppOrderButton
 
   const handleImageLoad = () => {
     setImageLoading(false);
@@ -104,20 +105,15 @@ export default function ProductCard({ product }) {
   const stockStatus = getStockStatus();
   const displayImage = product.mainImage || (product.images && product.images[0]);
 
-  // Set WhatsApp URL after component mounts (client-side only)
-  useEffect(() => {
-    const message = encodeURIComponent(
-      `Bonjour, je souhaite commander ce produit :\n` +
-      `Nom: ${product.name}\n` +
-      `Prix: ${product.price} MAD\n` +
-      (product.comparePrice ? `Prix de comparaison: ${product.comparePrice} MAD\n` : '') +
-      (product.stock && product.stock.currentQuantity !== undefined ? `Quantité en stock: ${product.stock.currentQuantity}\n` : '') +
-      `Lien produit: ${window.location.origin}/product/${product.slug}`
-    );
-
-    const whatsappNumber = '+212771615622';
-    setWhatsappUrl(`https://wa.me/${whatsappNumber.replace(/[^\d]/g, '')}?text=${message}`);
-  }, [product]); // Add product as dependency
+  // Prepare WhatsApp message (raw string) for the shared component
+  const whatsappMessage = (
+    `Bonjour, je souhaite commander ce produit :\n` +
+    `Nom: ${product.name}\n` +
+    `Prix: ${product.price} MAD\n` +
+    (product.comparePrice ? `Prix de comparaison: ${product.comparePrice} MAD\n` : '') +
+    (product.stock && product.stock.currentQuantity !== undefined ? `Quantité en stock: ${product.stock.currentQuantity}\n` : '') +
+    `Lien produit: ${typeof window !== 'undefined' ? `${window.location.origin}/product/${product.slug}` : ''}`
+  );
 
   // Handle add to cart with validation
   const handleAddToCart = async (e) => {
@@ -244,17 +240,12 @@ export default function ProductCard({ product }) {
         {/* Action buttons */}
         <div className="flex space-x-2 mt-3">
           {/* WhatsApp button */}
-          <Link
-            href={whatsappUrl}
-            passHref
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
-            aria-label="Commander via WhatsApp"
-          >
-            <FaWhatsapp className="w-4 h-4 mr-2" />
-            WhatsApp
-          </Link>
+          <WhatsAppOrderButton
+            label="WhatsApp"
+            message={whatsappMessage}
+            className="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded-lg"
+            size="sm"
+          />
 
           {/* Add to cart button */}
           <button

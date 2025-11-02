@@ -37,7 +37,7 @@ export default function ContactInfo() {
     phone: config?.contactPhone || '+212 6 00 00 00 00',
     email: config?.contactEmail || 'contact@electro-anbari.com',
     address: config?.address || 'Fequih ben saleh, Maroc',
-    hours: 'Lun - Ven: 9h-18h' // You can also move this to config if needed
+    hours: config?.openingHours || 'Lun - Ven: 9h-18h'
   };
 
   if (loading) {
@@ -100,7 +100,6 @@ export default function ContactInfo() {
             </div>
             <h3 className="text-lg font-semibold mb-2 text-gray-900">Horaires</h3>
             <p className="text-gray-600">{contactInfo.hours}</p>
-            <p className="text-sm text-gray-500 mt-1">Sam: 9h-13h</p>
           </div>
 
           {/* Adresse */}

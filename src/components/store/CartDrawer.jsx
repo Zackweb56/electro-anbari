@@ -2,7 +2,8 @@
 'use client'
 import Image from 'next/image';
 import { useState, useEffect } from 'react'
-import { FaTimes, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaWhatsapp, FaSpinner, FaExclamationTriangle, FaCheck, FaCreditCard } from 'react-icons/fa'
+import { FaTimes, FaShoppingCart, FaPlus, FaMinus, FaTrash, FaSpinner, FaExclamationTriangle, FaCheck, FaTruck } from 'react-icons/fa'
+import WhatsAppOrderButton from './WhatsAppOrderButton'
 import OrderForm from './OrderForm'
 
 // Cart utilities (same as before)
@@ -218,22 +219,19 @@ export default function CartDrawer({ isOpen, onClose, cartItemsCount }) {
   const subtotal = cartUtils.getCartTotal()
   const totalItems = cartUtils.getCartCount()
 
-  // Generate WhatsApp message with enhanced product details
+  // Generate WhatsApp message with enhanced product details (raw string)
   const generateWhatsAppMessage = () => {
     const itemsText = cartItems.map(item =>
       `• ${item.name} x${item.quantity} = ${item.price * item.quantity} MAD`
     ).join('\n')
-    
-    return encodeURIComponent(
+
+    return (
       `Bonjour! Je souhaite commander les produits suivants:\n\n${itemsText}\n\n` +
       `Sous-total: ${subtotal} MAD\n` +
       `Total: ${subtotal} MAD\n\n` +
       `Merci de me confirmer la disponibilité et les délais de livraison!`
     )
   }
-
-  const whatsappNumber = '+212771615622'
-  const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/[^\d]/g, '')}?text=${generateWhatsAppMessage()}`
 
   // Check if cart has errors
   const hasErrors = Object.keys(stockErrors).length > 0
@@ -273,7 +271,7 @@ export default function CartDrawer({ isOpen, onClose, cartItemsCount }) {
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
               <div className="flex items-center space-x-3">
                 {showOrderForm ? (
-                  <FaCreditCard className="w-6 h-6 text-blue-600" />
+                  <FaTruck className="w-6 h-6 text-blue-600" />
                 ) : (
                   <FaShoppingCart className="w-6 h-6 text-blue-600" />
                 )}
@@ -368,7 +366,9 @@ export default function CartDrawer({ isOpen, onClose, cartItemsCount }) {
                               : 'bg-gray-50 border-gray-200'
                           }`}
                         >
-                          <Image fill
+                          <Image 
+                            width={64}
+                            height={64}
                             src={item.image}
                             alt={item.name}
                             className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
@@ -487,22 +487,13 @@ export default function CartDrawer({ isOpen, onClose, cartItemsCount }) {
                 {/* Actions */}
                 <div className="space-y-3">
                   {/* WhatsApp Order Button */}
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
-                      hasErrors
-                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                    onClick={hasErrors ? (e) => e.preventDefault() : null}
-                  >
-                    <FaWhatsapp className="w-5 h-5" />
-                    <span>
-                      {hasErrors ? 'Ajustez le panier' : 'Commander via WhatsApp'}
-                    </span>
-                  </a>
+                  <WhatsAppOrderButton
+                    label={hasErrors ? 'Ajustez le panier' : 'Commander via WhatsApp'}
+                    message={generateWhatsAppMessage()}
+                    className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center ${hasErrors ? 'bg-gray-400 text-gray-200' : ''}`}
+                    disabled={hasErrors}
+                    size="md"
+                  />
 
                   {/* Website Order Form Button */}
                   <button
@@ -514,7 +505,7 @@ export default function CartDrawer({ isOpen, onClose, cartItemsCount }) {
                         : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
                   >
-                    <FaCreditCard className="w-5 h-5" />
+                    <FaTruck className="w-5 h-5" />
                     <span>
                       {hasErrors ? 'Ajustez le panier' : 'Finaliser la Commande'}
                     </span>

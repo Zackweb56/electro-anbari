@@ -92,14 +92,17 @@ export default function StoreHeader() {
             <div className="flex-shrink-0">
               <Link 
                 href="/" 
-                className="flex items-center space-x-2 group"
+                className="flex items-center space-x-3 group"
               >
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">YS</span>
+                <div className="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center shadow-sm group-hover:border-blue-300 transition-colors duration-300">
+                  <span className="text-blue-600 font-bold text-sm tracking-tight">EA</span>
                 </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300">
-                  Electro Anbari
-                </span>
+                
+                <div className="border-l border-gray-200 pl-3">
+                  <span className="text-xl font-medium text-gray-900 group-hover:text-blue-600 transition-colors duration-300">
+                    Electro Anbari
+                  </span>
+                </div>
               </Link>
             </div>
 

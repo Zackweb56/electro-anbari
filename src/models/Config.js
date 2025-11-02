@@ -50,6 +50,14 @@ const configSchema = new mongoose.Schema({
     type: String,
     default: 'Retours acceptés sous 14 jours. Produit doit être dans son emballage d\'origine.',
   },
+  openingHours: {
+    type: String,
+    default: 'Lun - Ven: 9h-18h',
+  },
+  youtubeVideo: {
+    type: String,
+    default: '',
+  },
   maintenanceMode: {
     type: Boolean,
     default: false,

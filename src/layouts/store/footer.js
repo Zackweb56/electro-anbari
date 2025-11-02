@@ -240,7 +240,7 @@ export default function StoreFooter() {
             &copy; {currentYear} {config?.storeName || 'Electro Anbari'}. Tous droits réservés.
           </p>
           <p className="text-gray-500 text-xs mt-2 -mb-8">
-            Conçu avec passion par <span className="text-blue-400 font-medium">zackwebdev</span>
+            Développé par <span className="text-blue-400 font-medium">zackwebdev</span>
           </p>
         </div>
       </div>

@@ -126,7 +126,9 @@ export default function OrderForm({ cartItems, onOrderSuccess }) {
               <div key={item._id || item.id} className="flex justify-between items-center border-b pb-3">
                 <div className="flex items-center space-x-3">
                   {item.image && (
-                    <Image fill 
+                    <Image 
+                      width={48}
+                      height={48} 
                       src={item.image} 
                       alt={item.name}
                       className="w-12 h-12 object-cover rounded"

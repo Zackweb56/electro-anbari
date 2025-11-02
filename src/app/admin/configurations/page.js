@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function StoreConfigurations() {
@@ -17,8 +18,10 @@ export default function StoreConfigurations() {
     whatsappNumber1: '+212600000000',
     whatsappNumber2: '',
     address: 'Fequih Ben Saleh, Maroc',
-    latitude: 33.5731,
-    longitude: -7.5898,
+    latitude: 32.497853,
+    longitude: -6.690345,
+    openingHours: 'Lun - Ven: 9h-18h',
+    youtubeVideo: '',
     facebook: '',
     instagram: '',
     youtube: '',
@@ -40,10 +43,12 @@ export default function StoreConfigurations() {
         console.log('Fetched config:', data); // Debug log
         setConfig(prev => ({ 
           ...prev, 
-          ...data,
+            ...data,
           // Map the data correctly
           contactEmail: data.contactEmail || prev.contactEmail,
           contactPhone: data.contactPhone || prev.contactPhone,
+            openingHours: data.openingHours || prev.openingHours,
+            youtubeVideo: data.youtubeVideo || prev.youtubeVideo,
           // Handle social media nested object
           facebook: data.socialMedia?.facebook || '',
           instagram: data.socialMedia?.instagram || '',
@@ -74,6 +79,8 @@ export default function StoreConfigurations() {
         address: config.address,
         latitude: parseFloat(config.latitude) || 0,
         longitude: parseFloat(config.longitude) || 0,
+        openingHours: config.openingHours,
+        youtubeVideo: config.youtubeVideo,
         facebook: config.facebook,
         instagram: config.instagram,
         youtube: config.youtube,
@@ -226,62 +233,119 @@ export default function StoreConfigurations() {
               <CardHeader>
                 <CardTitle>Contact & Réseaux Sociaux</CardTitle>
                 <CardDescription>
-                  Numéros WhatsApp et liens vers vos réseaux sociaux
+                  Gérez vos informations de contact et présence sur les réseaux sociaux
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* WhatsApp Numbers */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="whatsappNumber1">WhatsApp 1</Label>
-                    <Input
-                      id="whatsappNumber1"
-                      value={config.whatsappNumber1}
-                      onChange={(e) => setConfig(prev => ({ ...prev, whatsappNumber1: e.target.value }))}
-                      placeholder="+212600000000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="whatsappNumber2">WhatsApp 2 (Optionnel)</Label>
-                    <Input
-                      id="whatsappNumber2"
-                      value={config.whatsappNumber2}
-                      onChange={(e) => setConfig(prev => ({ ...prev, whatsappNumber2: e.target.value }))}
-                      placeholder="+212600000001"
-                    />
-                  </div>
-                </div>
+              <CardContent>
+                <Tabs defaultValue="contact" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="contact">Contact & Horaires</TabsTrigger>
+                    <TabsTrigger value="social">Réseaux Sociaux</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="contact" className="space-y-4 mt-4">
+                    <div className="grid gap-4">
+                      {/* WhatsApp Numbers */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">WhatsApp</CardTitle>
+                          <CardDescription>Numéros WhatsApp pour le contact client</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="whatsappNumber1">WhatsApp Principal</Label>
+                            <Input
+                              id="whatsappNumber1"
+                              value={config.whatsappNumber1}
+                              onChange={(e) => setConfig(prev => ({ ...prev, whatsappNumber1: e.target.value }))}
+                              placeholder="+212600000000"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="whatsappNumber2">WhatsApp Secondaire</Label>
+                            <Input
+                              id="whatsappNumber2"
+                              value={config.whatsappNumber2}
+                              onChange={(e) => setConfig(prev => ({ ...prev, whatsappNumber2: e.target.value }))}
+                              placeholder="+212600000001"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
 
-                {/* Social Media */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="facebook">Facebook</Label>
-                    <Input
-                      id="facebook"
-                      value={config.facebook}
-                      onChange={(e) => setConfig(prev => ({ ...prev, facebook: e.target.value }))}
-                      placeholder="https://facebook.com/votremagasin"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="instagram">Instagram</Label>
-                    <Input
-                      id="instagram"
-                      value={config.instagram}
-                      onChange={(e) => setConfig(prev => ({ ...prev, instagram: e.target.value }))}
-                      placeholder="https://instagram.com/votremagasin"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="youtube">YouTube</Label>
-                    <Input
-                      id="youtube"
-                      value={config.youtube}
-                      onChange={(e) => setConfig(prev => ({ ...prev, youtube: e.target.value }))}
-                      placeholder="https://youtube.com/@votremagasin"
-                    />
-                  </div>
-                </div>
+                      {/* Opening Hours */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Horaires d'Ouverture</CardTitle>
+                          <CardDescription>Définissez vos heures d'ouverture</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <Label htmlFor="openingHours">Horaires</Label>
+                            <Input
+                              id="openingHours"
+                              value={config.openingHours}
+                              onChange={(e) => setConfig(prev => ({ ...prev, openingHours: e.target.value }))}
+                              placeholder="Lun - Ven: 9h-18h"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="social" className="mt-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Réseaux Sociaux</CardTitle>
+                        <CardDescription>Liens vers vos profils sociaux et contenu vidéo</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Featured Video */}
+                        <div className="space-y-2">
+                          <Label htmlFor="youtubeVideo">Vidéo à la Une</Label>
+                          <Input
+                            id="youtubeVideo"
+                            value={config.youtubeVideo}
+                            onChange={(e) => setConfig(prev => ({ ...prev, youtubeVideo: e.target.value }))}
+                            placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                          />
+                        </div>
+                        
+                        {/* Social Media Links */}
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="facebook">Facebook</Label>
+                            <Input
+                              id="facebook"
+                              value={config.facebook}
+                              onChange={(e) => setConfig(prev => ({ ...prev, facebook: e.target.value }))}
+                              placeholder="https://facebook.com/votremagasin"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="instagram">Instagram</Label>
+                            <Input
+                              id="instagram"
+                              value={config.instagram}
+                              onChange={(e) => setConfig(prev => ({ ...prev, instagram: e.target.value }))}
+                              placeholder="https://instagram.com/votremagasin"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="youtube">Chaîne YouTube</Label>
+                            <Input
+                              id="youtube"
+                              value={config.youtube}
+                              onChange={(e) => setConfig(prev => ({ ...prev, youtube: e.target.value }))}
+                              placeholder="https://youtube.com/@votremagasin"
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
 
