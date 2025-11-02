@@ -276,8 +276,8 @@ export default function StoreConfigurations() {
                       {/* Opening Hours */}
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-lg">Horaires d'Ouverture</CardTitle>
-                          <CardDescription>Définissez vos heures d'ouverture</CardDescription>
+                          <CardTitle className="text-lg">Horaires d&apos;Ouverture</CardTitle>
+                          <CardDescription>Définissez vos heures d&apos;ouverture</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-2">
