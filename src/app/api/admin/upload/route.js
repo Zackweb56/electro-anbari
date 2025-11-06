@@ -1,4 +1,6 @@
 // app/api/admin/upload/route.js
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
@@ -9,11 +11,29 @@ cloudinary.config({
 
 export async function POST(request) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return Response.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file');
     
     if (!file) {
       return Response.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return Response.json({ error: 'Invalid file type. Only images are allowed.' }, { status: 400 });
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return Response.json({ error: 'File size too large. Maximum size is 10MB.' }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();

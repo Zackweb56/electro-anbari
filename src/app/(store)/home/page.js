@@ -8,6 +8,7 @@ import BrandsSection from '@/components/store/BrandsSection';
 import { 
   FaArrowRight,
   FaArrowCircleRight,
+  FaTag,
 } from 'react-icons/fa';
 
 // Fonctions de récupération des données
@@ -26,17 +27,60 @@ async function getFeaturedProducts() {
   }
 }
 
-async function getLatestProducts() {
+async function getLatestProducts(limit = 5) {
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/public/products?limit=8&sort=newest`, {
+    const res = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/public/products?limit=${limit}&sort=newest`, {
       next: { revalidate: 60 }
     });
     
     if (!res.ok) throw new Error('Failed to fetch latest products');
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    
+    // Filter products to only show those with available stock
+    const productsArray = Array.isArray(data) ? data : (data.products || []);
+    const availableProducts = productsArray.filter(product => {
+      const hasStock = product.stock && 
+                      product.stock.currentQuantity > 0 && 
+                      product.stock.status !== 'out_of_stock';
+      const isActive = product.isActive !== false;
+      return hasStock && isActive;
+    });
+
+    console.log(`Latest products: Total ${productsArray.length}, Available: ${availableProducts.length}`);
+    
+    return availableProducts;
   } catch (error) {
     console.error('Error fetching latest products:', error);
+    return [];
+  }
+}
+
+async function getDiscountedProducts() {
+  try {
+    // Fetch all products to get ALL discounted ones
+    const res = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/public/products`, {
+      next: { revalidate: 60 }
+    });
+    
+    if (!res.ok) throw new Error('Failed to fetch discounted products');
+    const data = await res.json();
+    
+    // Filter products to only show those with available stock AND comparePrice (discount)
+    const productsArray = Array.isArray(data) ? data : (data.products || []);
+    const discountedProducts = productsArray.filter(product => {
+      const hasStock = product.stock && 
+                      product.stock.currentQuantity > 0 && 
+                      product.stock.status !== 'out_of_stock';
+      const hasDiscount = product.comparePrice && product.comparePrice > product.price;
+      const isActive = product.isActive !== false;
+      return hasStock && hasDiscount && isActive;
+    });
+
+    console.log(`Discounted products: Total ${productsArray.length}, Discounted & Available: ${discountedProducts.length}`);
+    
+    return discountedProducts;
+  } catch (error) {
+    console.error('Error fetching discounted products:', error);
     return [];
   }
 }
@@ -123,15 +167,20 @@ function toYouTubeEmbed(url) {
 }
 
 export default async function HomePage() {
-  const [featuredProducts, latestProducts, brands, config] = await Promise.all([
+  // Change this number to display more or less latest products
+  const LATEST_PRODUCTS_COUNT = 5;
+  
+  const [featuredProducts, latestProducts, discountedProducts, brands, config] = await Promise.all([
     getFeaturedProducts(),
-    getLatestProducts(),
+    getLatestProducts(LATEST_PRODUCTS_COUNT),
+    getDiscountedProducts(),
     getBrands(),
     getConfig()
   ]);
 
   const safeFeaturedProducts = Array.isArray(featuredProducts) ? featuredProducts : [];
   const safeLatestProducts = Array.isArray(latestProducts) ? latestProducts : [];
+  const safeDiscountedProducts = Array.isArray(discountedProducts) ? discountedProducts : [];
   const safeBrands = Array.isArray(brands) ? brands : [];
 
   return (
@@ -198,6 +247,34 @@ export default async function HomePage() {
         <BrandsSection brands={safeBrands} />
       )}
 
+      {/* Offres Spéciales - Discounted Products */}
+      {safeDiscountedProducts.length > 0 && (
+        <section className="py-12 bg-gradient-to-r from-orange-50 to-red-50">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900">Offres Spéciales</h2>
+                  <p className="text-gray-600 text-sm">Profitez de nos promotions exceptionnelles</p>
+                </div>
+              </div>
+              <Link 
+                href="/store?sort=discount" 
+                className="text-gray-600 hover:text-gray-900 font-medium text-sm flex items-center gap-1 transition-colors"
+              >
+                Voir toutes
+                <FaArrowRight className="text-xs" />
+              </Link>
+            </div>
+            <ProductsSlider 
+              products={safeDiscountedProducts} 
+              autoPlay={true}
+              interval={3000}
+            />
+          </div>
+        </section>
+      )}
+
       {/* Meilleures Ventes */}
       {safeFeaturedProducts.length > 0 && (
         <section className="py-12 bg-gray-50">
@@ -213,7 +290,7 @@ export default async function HomePage() {
                 href="/store?sort=featured" 
                 className="text-gray-600 hover:text-gray-900 font-medium text-sm flex items-center gap-1 transition-colors"
               >
-                Voir tout
+                Voir tous
                 <FaArrowRight className="text-xs" />
               </Link>
             </div>
@@ -234,7 +311,7 @@ export default async function HomePage() {
               <div className="flex items-center gap-2">
                 <div>
                   <h2 className="text-2xl font-semibold text-gray-900">Nouveautés</h2>
-                  <p className="text-gray-600 text-sm">Nos dernières arrivages</p>
+                  <p className="text-gray-600 text-sm">Nos {LATEST_PRODUCTS_COUNT} dernières arrivages en stock</p>
                 </div>
               </div>
               <Link 
@@ -246,7 +323,7 @@ export default async function HomePage() {
               </Link>
             </div>
             <ProductsSlider 
-              products={safeLatestProducts.slice(0, 8)} 
+              products={safeLatestProducts} 
               autoPlay={true}
               interval={3500}
             />

@@ -325,10 +325,13 @@ export default function BrandsPage() {
                   : 'Ajoutez une nouvelle marque pour vos produits'
                 }
               </DialogDescription>
+              <p className="text-[10px] mt-2 px-3 py-2 rounded border bg-muted/30 text-muted-foreground">
+                Les champs marqués par <span className="text-red-600">*</span> sont obligatoires.
+              </p>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nom de la marque *</Label>
+                <Label htmlFor="name">Nom de la marque <span className="text-red-600">*</span></Label>
                 <Input
                   id="name"
                   value={formData.name}

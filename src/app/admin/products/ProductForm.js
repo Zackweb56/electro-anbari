@@ -39,6 +39,12 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
       storage: '',
       display: '',
       graphics: '',
+      // Secondary graphics (for machines with dual GPUs)
+      graphics2: '',
+      // Battery info (for portable devices)
+      battery: '',
+      // Keyboard details (layout, backlight, etc.)
+      keyboard: '',
       operatingSystem: ''
     },
     features: [],
@@ -110,6 +116,9 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
           storage: '',
           display: '',
           graphics: '',
+          graphics2: '',
+          battery: '',
+          keyboard: '',
           operatingSystem: ''
         },
         features: product.features || [],
@@ -138,7 +147,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
     const errors = {};
     
     if (!formData.name.trim()) errors.name = 'Le nom du produit est requis';
-    if (!formData.description.trim()) errors.description = 'La description est requise';
+    // description is optional
     if (!formData.price || parseFloat(formData.price) <= 0) errors.price = 'Le prix doit être supérieur à 0';
     if (!formData.brand) errors.brand = 'La marque est requise';
     if (!formData.category) errors.category = 'La catégorie est requise';
@@ -295,7 +304,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
         <TabsContent value="basic" className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
-                <Label htmlFor="name">Nom du produit *</Label>
+                <Label htmlFor="name">Nom du produit <span className="text-red-600">*</span></Label>
                 <Input
                 id="name"
                 value={formData.name}
@@ -323,7 +332,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
+                <Label htmlFor="description">Description</Label>
                 <Textarea
                 id="description"
                 value={formData.description}
@@ -333,7 +342,6 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                 }}
                 placeholder="Description détaillée du produit..."
                 rows={4}
-                required
                 className={validationErrors.description ? 'border-red-500 focus:border-red-500' : ''}
                 />
                 {validationErrors.description && (
@@ -344,7 +352,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Brand Select */}
               <div className="space-y-2">
-                <Label htmlFor="brand">Marque *</Label>
+                <Label htmlFor="brand">Marque <span className="text-red-600">*</span></Label>
                 <Select 
                   value={formData.brand} 
                   onValueChange={(value) => {
@@ -370,7 +378,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
 
               {/* Category Select */}
               <div className="space-y-2">
-                <Label htmlFor="category">Catégorie *</Label>
+                <Label htmlFor="category">Catégorie <span className="text-red-600">*</span></Label>
                 <Select 
                   value={formData.category} 
                   onValueChange={(value) => {
@@ -397,7 +405,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                <Label htmlFor="price">Prix (MAD) *</Label>
+                <Label htmlFor="price">Prix (MAD) <span className="text-red-600">*</span></Label>
                 <Input
                     id="price"
                     type="number"
@@ -516,7 +524,8 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                 }}
                 buttonText="Ajouter des images"
                 multiple={true}
-                maxFiles={10}
+                maxFiles={5}
+                currentImages={formData.images}
               />
               
               <p className="text-xs text-muted-foreground mt-2">
@@ -611,6 +620,36 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="graphics2">Carte graphique (secondaire)</Label>
+              <Input
+                id="graphics2"
+                value={formData.specifications.graphics2}
+                onChange={(e) => handleSpecificationChange('graphics2', e.target.value)}
+                placeholder="Ex: Intel Iris Xe (iGPU)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="battery">Batterie</Label>
+              <Input
+                id="battery"
+                value={formData.specifications.battery}
+                onChange={(e) => handleSpecificationChange('battery', e.target.value)}
+                placeholder="Ex: 70Wh Li-ion"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="keyboard">Clavier</Label>
+              <Input
+                id="keyboard"
+                value={formData.specifications.keyboard}
+                onChange={(e) => handleSpecificationChange('keyboard', e.target.value)}
+                placeholder="Ex: AZERTY, rétroéclairé"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="operatingSystem">Système d&apos;exploitation</Label>
               <Input
                 id="operatingSystem"
@@ -619,40 +658,40 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
                 placeholder="Ex: Windows 11, macOS"
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Caractéristiques</Label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={newFeature}
-                onChange={(e) => setNewFeature(e.target.value)}
-                placeholder="Ajouter une caractéristique"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addFeature();
-                  }
-                }}
-              />
-              <Button type="button" onClick={addFeature} size="sm">
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              {formData.features.map((feature, index) => (
-                <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                  {feature}
-                  <button
-                    type="button"
-                    onClick={() => removeFeature(index)}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </Badge>
-              ))}
+            <div className="space-y-2">
+              <Label>Caractéristiques</Label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  value={newFeature}
+                  onChange={(e) => setNewFeature(e.target.value)}
+                  placeholder="Ajouter une caractéristique"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addFeature();
+                    }
+                  }}
+                />
+                <Button type="button" onClick={addFeature} size="sm">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {formData.features.map((feature, index) => (
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                    {feature}
+                    <button
+                      type="button"
+                      onClick={() => removeFeature(index)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -680,9 +719,9 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="isFeatured">Produit en vedette</Label>
+                  <Label htmlFor="isFeatured">Produit populaire</Label>
                   <p className="text-sm text-muted-foreground">
-                    Le produit sera mis en avant sur le site
+                    Ce produit apparaîtra comme produit populaire
                   </p>
                 </div>
                 <Switch
@@ -696,62 +735,63 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
         </TabsContent>
       </Tabs>
 
-      {/* Form Actions */}
-        <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4 border-t">
+      {/* Form Actions - Improved Version */}
+      <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4 border-t">
         <div className="flex gap-2">
-            <Button
+          <Button
             type="button"
             variant="outline"
             onClick={onCancel}
             className="flex-1 sm:flex-none"
-            >
+          >
             Annuler
-            </Button>
+          </Button>
         </div>
         
         <div className="flex gap-2 mb-3 sm:mb-0">
-            {activeTab !== 'basic' && (
+          {/* Previous Button - show if not on first tab */}
+          {activeTab !== 'basic' && (
             <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
+              type="button"
+              variant="outline"
+              onClick={() => {
                 const tabs = ['basic', 'media', 'specs', 'settings'];
                 const currentIndex = tabs.indexOf(activeTab);
-                if (currentIndex > 0) {
-                    setActiveTab(tabs[currentIndex - 1]);
-                }
-                }}
-                className="flex-1 sm:flex-none"
+                setActiveTab(tabs[currentIndex - 1]);
+              }}
+              className="flex-1 sm:flex-none"
             >
-                ← Précédent
+              ← Précédent
             </Button>
-            )}
-            
-            {activeTab !== 'settings' ? (
+          )}
+          
+          {/* Next Button - show if not on last tab */}
+          {activeTab !== 'settings' && (
             <Button
-                type="button"
-                onClick={() => {
+              type="button"
+              onClick={() => {
                 const tabs = ['basic', 'media', 'specs', 'settings'];
                 const currentIndex = tabs.indexOf(activeTab);
-                if (currentIndex < tabs.length - 1) {
-                    setActiveTab(tabs[currentIndex + 1]);
-                }
-                }}
-                className="flex-1 sm:flex-none"
+                setActiveTab(tabs[currentIndex + 1]);
+              }}
+              className="flex-1 sm:flex-none"
             >
-                Suivant →
+              Suivant →
             </Button>
-            ) : (
+          )}
+          
+          {/* Submit Button - only show on last tab */}
+          {activeTab === 'settings' && (
             <Button 
-                type="submit" 
-                disabled={loading}
-                className="flex-1 sm:flex-none"
+              type="submit"
+              disabled={loading}
+              className="flex-1 sm:flex-none"
             >
-                {loading ? 'Enregistrement...' : product ? 'Modifier' : 'Créer'}
+              {loading ? 'Enregistrement...' : product ? 'Modifier' : 'Créer'}
             </Button>
-            )}
+          )}
         </div>
-        </div>
+      </div>
     </form>
   );
 }

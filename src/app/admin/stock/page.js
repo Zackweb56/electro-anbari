@@ -695,6 +695,9 @@ export default function StockPage() {
               <DialogDescription>
                 Ajoutez un nouveau stock pour un produit
               </DialogDescription>
+              <p className="text-[10px] mt-2 px-3 py-2 rounded border bg-muted/30 text-muted-foreground">
+                Les champs marqués par <span className="text-red-600">*</span> sont obligatoires.
+              </p>
             </DialogHeader>
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -805,6 +808,9 @@ export default function StockPage() {
               <DialogDescription>
                 Ajoutez de nouvelles ventes WhatsApp pour {selectedStock?.product?.name}
               </DialogDescription>
+              <p className="text-[10px] mt-2 px-3 py-2 rounded border bg-muted/30 text-muted-foreground">
+                Les champs marqués par <span className="text-red-600">*</span> sont obligatoires.
+              </p>
             </DialogHeader>
             <form onSubmit={handleEditSubmit} className="space-y-4">
               {/* Product Info (Readonly) */}

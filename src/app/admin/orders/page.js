@@ -41,7 +41,9 @@ export default function OrdersPage() {
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -66,18 +68,19 @@ export default function OrdersPage() {
   };
 
   const handleStatusUpdate = async (order, newStatus) => {
-    // Show confirmation for cancellation
+    // If cancelling, show confirmation dialog instead of immediate update
     if (newStatus === 'cancelled') {
-      const confirmed = window.confirm(
-        `Êtes-vous sûr de vouloir annuler la commande ${order.orderNumber} ?\n\n` +
-        `Le stock (${order.items.reduce((sum, item) => sum + item.quantity, 0)} article(s)) sera retourné à l'inventaire.`
-      );
-      
-      if (!confirmed) {
-        return;
-      }
+      setSelectedOrder(order);
+      setPendingStatusUpdate(newStatus);
+      setCancelDialogOpen(true);
+      return;
     }
 
+    // For other status updates, proceed immediately
+    await updateOrderStatus(order, newStatus);
+  };
+
+  const updateOrderStatus = async (order, newStatus) => {
     setUpdatingOrderId(order._id);
     
     try {
@@ -110,6 +113,14 @@ export default function OrdersPage() {
       toast.error('Erreur de connexion');
     } finally {
       setUpdatingOrderId(null);
+      setPendingStatusUpdate(null);
+    }
+  };
+
+  const confirmCancellation = async () => {
+    if (selectedOrder && pendingStatusUpdate === 'cancelled') {
+      await updateOrderStatus(selectedOrder, 'cancelled');
+      setCancelDialogOpen(false);
     }
   };
 
@@ -281,7 +292,7 @@ export default function OrdersPage() {
     },
     {
       key: 'whatsapp',
-      header: 'WhatsApp',
+      header: 'Confirmation',
       cell: (order) => (
         <div className="flex items-center space-x-2">
           {updatingOrderId === order._id ? (
@@ -573,7 +584,9 @@ export default function OrdersPage() {
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           {item.productImage ? (
-                            <Image fill 
+                            <Image 
+                              width={48} 
+                              height={48} 
                               src={item.productImage} 
                               alt={item.productName}
                               className="w-12 h-12 rounded-md object-cover border"
@@ -608,12 +621,12 @@ export default function OrdersPage() {
                 <div>
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
                     <MessageCircleIcon className="w-4 h-4 text-primary" />
-                    Statut WhatsApp
+                    Statut de confirmation
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <Info 
-                      label="Client" 
-                      value={selectedOrder.customerWhatsappConfirmed ? "✅ Confirmé" : "❌ Non confirmé"} 
+                      label="WhatsApp Client" 
+                      value={selectedOrder.customerWhatsappConfirmed ? "✅ Disponible" : "❌ Non disponible"} 
                     />
                     <Info 
                       label="Admin" 
@@ -708,6 +721,53 @@ export default function OrdersPage() {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Cancellation Confirmation Dialog */}
+        <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Annuler la commande</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>
+                    Êtes-vous sûr de vouloir annuler la commande <b>{selectedOrder?.orderNumber}</b> ?
+                  </p>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 dark:bg-yellow-900/20 dark:border-yellow-800">
+                    <div className="flex items-start gap-2">
+                      <div className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                        <p className="font-medium">Cette action va :</p>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>Marquer la commande comme annulée</li>
+                          <li>Retourner <b>{selectedOrder?.items.reduce((sum, item) => sum + item.quantity, 0)} article(s)</b> au stock</li>
+                          <li>Être visible dans l&apos;historique de la commande</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Vous pourrez toujours modifier le statut ultérieurement si nécessaire.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setPendingStatusUpdate(null)}>
+                Garder la commande
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmCancellation}
+                className="bg-yellow-600 text-white hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-800"
+              >
+                Confirmer l&apos;annulation
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

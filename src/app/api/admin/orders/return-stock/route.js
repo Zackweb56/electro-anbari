@@ -1,4 +1,6 @@
 // src/app/api/admin/orders/return-stock/route.js
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
@@ -6,6 +8,15 @@ import Stock from '@/models/Stock';
 
 export async function POST(request) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Non autorisé' },
+        { status: 401 }
+      );
+    }
+
     await dbConnect();
     
     const { orderId } = await request.json();

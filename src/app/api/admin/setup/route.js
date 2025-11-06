@@ -4,11 +4,41 @@ import Admin from '@/models/Admin.js';
 
 export async function POST(request) {
   try {
+    // SECURITY: Only allow setup in development or if no admin exists
+    // In production, you should use a secret token or environment variable
+    const setupToken = request.headers.get('x-setup-token');
+    const allowedToken = process.env.SETUP_TOKEN;
+    
+    // If SETUP_TOKEN is set, require it
+    if (allowedToken && setupToken !== allowedToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { name, email, password } = await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: 'Name, email, and password are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters long' },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
         { status: 400 }
       );
     }
@@ -26,8 +56,8 @@ export async function POST(request) {
 
     // Create the admin
     const admin = new Admin({
-      name,
-      email,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
       password,
       role: 'superadmin'
     });

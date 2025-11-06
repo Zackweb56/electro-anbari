@@ -2,72 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { FaShoppingCart, FaSpinner } from 'react-icons/fa';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Check,
+  Cpu,
+  MemoryStick,
+  HardDrive,
+  Monitor,
+  Cctv,
+  Battery,
+  Keyboard,
+  Smartphone,
+  Star // Add Star icon for featured badge
+} from 'lucide-react';
 import WhatsAppOrderButton from '@/components/store/WhatsAppOrderButton';
-
-// Cart utilities
-const cartUtils = {
-  getCart: () => {
-    if (typeof window === 'undefined') return []
-    return JSON.parse(localStorage.getItem('cart') || '[]')
-  },
-
-  addToCart: async (product, quantity = 1) => {
-    try {
-      // Validate stock via API
-      const stockResponse = await fetch(`/api/public/products/${product.slug}`)
-      const stockData = await stockResponse.json()
-      
-      if (!stockData.success || !stockData.product) {
-        throw new Error('Produit non disponible')
-      }
-
-      const currentStock = stockData.product.stock?.currentQuantity || 0
-      
-      if (currentStock < quantity) {
-        throw new Error(`Stock insuffisant. Il reste ${currentStock} unité(s)`)
-      }
-
-      // Add to localStorage cart
-      const cart = cartUtils.getCart()
-      const existingItem = cart.find(item => item.id === product._id)
-
-      if (existingItem) {
-        const newQuantity = existingItem.quantity + quantity
-        if (newQuantity > currentStock) {
-          throw new Error(`Quantité maximale atteinte. Stock: ${currentStock}`)
-        }
-        existingItem.quantity = newQuantity
-      } else {
-        cart.push({
-          id: product._id,
-          slug: product.slug,
-          name: product.name,
-          price: product.price,
-          comparePrice: product.comparePrice,
-          image: product.mainImage || product.images?.[0],
-          quantity: quantity,
-          maxStock: currentStock,
-          brand: product.brand?.name,
-          category: product.category?.name,
-          specifications: product.specifications
-        })
-      }
-
-      localStorage.setItem('cart', JSON.stringify(cart))
-      return { success: true, cart }
-    } catch (error) {
-      return { success: false, error: error.message }
-    }
-  },
-
-  getCartCount: () => {
-    const cart = cartUtils.getCart()
-    return cart.reduce((total, item) => total + item.quantity, 0)
-  }
-};
+import AddToCartButton from '@/components/store/AddToCartButton';
 
 export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
@@ -129,39 +82,13 @@ export default function ProductDetailPage() {
   };
 
   // Handle add to cart with validation
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Don't add to cart if out of stock
-    if (product.stock?.status === 'out_of_stock') {
-      setCartMessage('Produit en rupture de stock');
-      setTimeout(() => setCartMessage(''), 3000);
-      return;
+  const handleAddToCartResult = (res) => {
+    if (res?.success) {
+      setCartMessage('✅ Produit ajouté au panier!');
+    } else {
+      setCartMessage(`❌ ${res?.error || 'Erreur lors de l\'ajout au panier'}`);
     }
-
-    setAddingToCart(true);
-    setCartMessage('');
-    
-    try {
-      const result = await cartUtils.addToCart(product, quantity);
-      
-      if (result.success) {
-        setCartMessage('✅ Produit ajouté au panier!');
-        // Trigger cart update in header and other components
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('cartUpdated'));
-        }
-      } else {
-        setCartMessage(`❌ ${result.error}`);
-      }
-    } catch (error) {
-      setCartMessage('❌ Erreur lors de l\'ajout au panier');
-      console.error('Cart error:', error);
-    } finally {
-      setAddingToCart(false);
-      setTimeout(() => setCartMessage(''), 3000);
-    }
+    setTimeout(() => setCartMessage(''), 3000);
   };
 
   // Filter out empty specifications
@@ -181,12 +108,27 @@ export default function ProductDetailPage() {
     storage: 'Stockage',
     display: 'Écran',
     graphics: 'Carte Graphique',
+    graphics2: 'Carte Graphique (secondaire)',
+    battery: 'Batterie',
+    keyboard: 'Clavier',
     operatingSystem: 'Système d\'exploitation'
+  };
+
+  const specIcons = {
+    processor: Cpu,
+    ram: MemoryStick,
+    storage: HardDrive,
+    display: Monitor,
+    graphics: Cctv,
+    graphics2: Cctv,
+    battery: Battery,
+    keyboard: Keyboard,
+    operatingSystem: Smartphone,
   };
 
   // Determine stock status
   const getStockStatus = () => {
-    if (!product.stock) return { text: 'Stock indisponible', color: 'text-red-600', bg: 'bg-red-100' };
+    if (!product?.stock) return { text: 'Stock indisponible', color: 'text-red-600', bg: 'bg-red-100' };
 
     const { currentQuantity, status } = product.stock;
 
@@ -283,7 +225,9 @@ export default function ProductDetailPage() {
               onMouseLeave={() => setIsZoomed(false)}
               onMouseMove={handleMouseMove}
             >
-              <img
+              <Image
+                width={600}
+                height={600}
                 src={images[selectedImage] || '/placeholder.png'}
                 alt={product.name}
                 className="w-full h-full object-contain p-8 transition-transform duration-200"
@@ -322,6 +266,13 @@ export default function ProductDetailPage() {
                   -{discount}%
                 </div>
               )}
+
+              {/* Featured Badge - Added here */}
+              {product.isFeatured && (
+                <div className="absolute top-16 left-4 bg-yellow-400 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg">
+                  Populaire
+                </div>
+              )}
             </div>
 
             {/* Thumbnail Gallery */}
@@ -337,7 +288,9 @@ export default function ProductDetailPage() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <img
+                    <Image
+                      width={80}
+                      height={80}
                       src={image}
                       alt={`${product.name} ${index + 1}`}
                       className="w-full h-full object-contain p-2 bg-gray-50"
@@ -351,27 +304,40 @@ export default function ProductDetailPage() {
           {/* Right Column - Product Info */}
           <div className="space-y-4 lg:space-y-6">
             {/* Brand & Category */}
-            <div className="flex items-center gap-3 text-sm">
-              {product.brand?.name && (
-                <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">
-                  {product.brand.name}
-                </span>
+            <div className="flex flex-wrap items-center gap-2 mb-2 sm:mb-4">
+              {product?.brand && (
+                <div>
+                  {product.brand.logo ? (
+                    <Image
+                      width={40}
+                      height={40}
+                      src={product.brand.logo}
+                      alt={product.brand.name}
+                      className="w-12 sm:h-12 object-contain"
+                      title={product.brand.name}
+                    />
+                  ) : (
+                    <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg border border-blue-200 text-xs font-semibold">
+                      {product.brand.name}
+                    </div>
+                  )}
+                </div>
               )}
-              {product.category?.name && (
-                <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-medium">
+              {product?.category && (
+                <div className="bg-green-50 text-green-700 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg border border-green-200 text-xs font-semibold">
                   {product.category.name}
-                </span>
+                </div>
               )}
             </div>
 
             {/* Product Name */}
             <div>
-              <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2">
+              <h1 className="text-xl lg:text-4xl font-bold text-gray-900 leading-tight mb-2">
                 {product.name}
               </h1>
               {/* SKU Reference */}
               {product.sku && (
-                <p className="text-sm text-gray-500">
+                <p className="text-[11px] text-gray-500">
                   Référence: <span className="font-mono font-medium text-gray-700">{product.sku}</span>
                 </p>
               )}
@@ -431,32 +397,26 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
-              {/* WhatsApp Button - Primary */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              {/* WhatsApp Button */}
               <WhatsAppOrderButton
                 label="Commander via WhatsApp"
                 message={getWhatsAppMessage()}
-                className="flex-1"
-                size="lg"
+                className="sm:flex-1 text-xs sm:text-sm px-3 py-2 sm:px-5 sm:py-2.5"
+                size="sm"
               />
               
-              {/* Add to Cart Button - Icon Only */}
-              <button
-                onClick={handleAddToCart}
-                disabled={addingToCart || !canAddToCart}
-                className={`p-3 lg:p-4 rounded-xl font-semibold transition-colors shadow-lg ${
+              {/* Add to Cart Button */}
+              <AddToCartButton
+                product={product}
+                quantity={quantity}
+                onResult={handleAddToCartResult}
+                className={`text-xs sm:text-sm font-semibold rounded-lg px-3 py-2 sm:px-5 sm:py-2.5 ${
                   canAddToCart
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'
-                    : 'bg-gray-400 text-gray-200 cursor-not-allowed shadow-gray-400/30'
-                } ${addingToCart ? 'opacity-70 cursor-wait' : ''}`}
-                title={canAddToCart ? "Ajouter au panier" : "Produit en rupture de stock"}
-              >
-                {addingToCart ? (
-                  <FaSpinner className="w-5 h-5 lg:w-6 lg:h-6 animate-spin" />
-                ) : (
-                  <FaShoppingCart className="w-5 h-5 lg:w-6 lg:h-6" />
-                )}
-              </button>
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+              />
             </div>
 
             {/* Cart Message */}
@@ -480,16 +440,26 @@ export default function ProductDetailPage() {
             </h2>
             <div className="bg-gray-50 rounded-2xl p-6 lg:p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-                {Object.entries(validSpecs).map(([key, value]) => (
-                  <div key={key} className="flex flex-col sm:flex-row sm:items-center border-b border-gray-200 pb-4 last:border-0">
-                    <span className="text-xs lg:text-sm font-semibold text-gray-600 uppercase tracking-wide sm:w-48 mb-1 sm:mb-0">
-                      {specLabels[key] || key}
-                    </span>
-                    <span className="text-sm lg:text-base text-gray-900 font-medium">
-                      {value}
-                    </span>
-                  </div>
-                ))}
+                {Object.entries(validSpecs).map(([key, value]) => {
+                  const IconComponent = specIcons[key];
+                  return (
+                    <div key={key} className="flex items-start gap-4 border-b border-gray-200 pb-4 last:border-0">
+                      {IconComponent && (
+                        <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg flex-shrink-0">
+                          <IconComponent className="w-5 h-5 text-blue-600" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <span className="block text-sm font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                          {specLabels[key] || key}
+                        </span>
+                        <span className="text-base text-gray-900 font-medium">
+                          {value}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

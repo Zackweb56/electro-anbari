@@ -1,21 +1,37 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import Product from '@/models/Product';
-import Category from '@/models/Category';
-import Brand from '@/models/Brand';
-import Stock from '@/models/Stock';
 
-export async function GET() {
+// SECURITY: This endpoint exposes database information and should be disabled in production
+// Consider removing this endpoint entirely or restricting it to development only
+export async function GET(request) {
+  // SECURITY: Disable in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Not found' },
+      { status: 404 }
+    );
+  }
+
+  // Only allow in development with a secret token
+  const testToken = request?.headers?.get('x-test-token');
+  const allowedToken = process.env.TEST_TOKEN;
+  
+  if (allowedToken && testToken !== allowedToken) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   try {
+    // Disabled for security - uncomment only for development
+    /*
     await dbConnect();
 
-    // Compter les documents
     const productCount = await Product.countDocuments();
     const categoryCount = await Category.countDocuments();
     const brandCount = await Brand.countDocuments();
     const stockCount = await Stock.countDocuments();
 
-    // Récupérer quelques échantillons
     const sampleProducts = await Product.find().limit(3).populate('category').populate('brand');
     const sampleCategories = await Category.find().limit(3);
     const sampleBrands = await Brand.find().limit(3);
@@ -36,10 +52,15 @@ export async function GET() {
         stocks: sampleStocks
       }
     });
+    */
+    
+    return NextResponse.json({
+      error: 'This endpoint is disabled for security reasons'
+    }, { status: 403 });
   } catch (error) {
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: 'Internal server error'
     }, { status: 500 });
   }
 }

@@ -37,6 +37,7 @@ export async function GET(request, { params }) {
 }
 
 // PUT - Mettre à jour un produit
+// PUT - Mettre à jour un produit
 export async function PUT(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -45,20 +46,48 @@ export async function PUT(request, { params }) {
     const body = await request.json();
     const { name, description, price, comparePrice, images, mainImage, brand, category, specifications, features, sku, isActive, isFeatured } = body;
 
-    if (!name || !description || !price || !brand || !category) {
+    if (!name || !price || !brand || !category) {
       return Response.json({ error: 'Tous les champs obligatoires doivent être remplis' }, { status: 400 });
     }
 
     await connectDB();
 
+    // Improved SKU generation for updates
+    const generateSKU = (productName, customSKU = null, existingSKU = null) => {
+      // If custom SKU provided, use it
+      if (customSKU && customSKU.trim() !== '') {
+        return customSKU.trim();
+      }
+      
+      // If existing SKU follows our pattern, keep it
+      if (existingSKU && existingSKU.startsWith('PROD-')) {
+        return existingSKU;
+      }
+      
+      // Generate new SKU
+      const cleanName = productName
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .substring(0, 4);
+      
+      const timestamp = Date.now().toString().slice(-4);
+      const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+      
+      return `PROD-${cleanName || 'ITEM'}-${timestamp}${random}`.substring(0, 20);
+    };
+
     const newSlug = generateSlug(name) || `product-${Date.now()}-${Math.random().toString(36).substring(2,6)}`;
     const finalMainImage = mainImage || (images && images.length > 0 ? images[0] : '');
+
+    // Get existing product to check current SKU
+    const existingProduct = await Product.findById(params.id);
+    const finalSku = generateSKU(name, sku, existingProduct?.sku);
 
     const updated = await Product.findByIdAndUpdate(
       params.id,
       {
         name: name.trim(),
-        description: description.trim(),
+        description: description ? description.trim() : '',
         price: parseFloat(price),
         comparePrice: comparePrice ? parseFloat(comparePrice) : null,
         images: images || [],
@@ -67,7 +96,7 @@ export async function PUT(request, { params }) {
         category,
         specifications: specifications || {},
         features: features || [],
-        sku,
+        sku: finalSku,
         slug: newSlug,
         isActive: isActive ?? true,
         isFeatured: isFeatured ?? false,
@@ -82,6 +111,15 @@ export async function PUT(request, { params }) {
 
   } catch (error) {
     console.error('Error updating product:', error);
+    
+    // Handle duplicate SKU error specifically
+    if (error.code === 11000 && error.keyPattern?.sku) {
+      return Response.json({ 
+        error: 'Erreur: Ce SKU existe déjà. Veuillez en choisir un autre.',
+        details: 'SKU must be unique'
+      }, { status: 400 });
+    }
+    
     return Response.json({ error: 'Erreur serveur: ' + error.message }, { status: 500 });
   }
 }

@@ -374,6 +374,9 @@ export default function ProductsPage() {
                   : 'Ajoutez un nouveau produit à votre catalogue'
                 }
               </DialogDescription>
+              <p className="text-[10px] mt-2 px-3 py-2 rounded border bg-muted/30 text-muted-foreground">
+                Les champs marqués par <span className="text-red-600">*</span> sont obligatoires.
+              </p>
             </DialogHeader>
             <ProductForm 
               product={selectedProduct}
@@ -537,6 +540,18 @@ export default function ProductsPage() {
                     <div>
                       <p className="text-muted-foreground text-xs">Graphiques</p>
                       <p className="font-medium">{selectedProduct.specifications.graphics || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Graphiques (secondaire)</p>
+                      <p className="font-medium">{selectedProduct.specifications.graphics2 || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Batterie</p>
+                      <p className="font-medium">{selectedProduct.specifications.battery || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Clavier</p>
+                      <p className="font-medium">{selectedProduct.specifications.keyboard || '—'}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Système d’exploitation</p>

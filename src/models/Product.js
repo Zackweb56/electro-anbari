@@ -14,18 +14,27 @@ const generateSlug = (text) => {
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: [true, 'Product name is required'],
+    trim: true,
   },
   description: {
     type: String,
-    required: true,
+    default: '', // Add explicit default value
+    trim: true,
   },
   price: {
     type: Number,
-    required: true,
+    required: [true, 'Product price is required'],
+    min: [0, 'Price cannot be negative'],
   },
-  comparePrice: Number,
-  images: [String],
+  comparePrice: {
+    type: Number,
+    default: null, // Use null instead of undefined
+  },
+  images: {
+    type: [String],
+    default: [],
+  },
   mainImage: {
     type: String,
     default: '',
@@ -33,22 +42,28 @@ const productSchema = new mongoose.Schema({
   brand: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Brand',
-    required: true,
+    required: [true, 'Brand is required'],
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: true,
+    required: [true, 'Category is required'],
   },
   specifications: {
-    processor: String,
-    ram: String,
-    storage: String,
-    display: String,
-    graphics: String,
-    operatingSystem: String,
+    processor: { type: String, default: '' },
+    ram: { type: String, default: '' },
+    storage: { type: String, default: '' },
+    display: { type: String, default: '' },
+    graphics: { type: String, default: '' },
+    graphics2: { type: String, default: '' },
+    battery: { type: String, default: '' },
+    keyboard: { type: String, default: '' },
+    operatingSystem: { type: String, default: '' },
   },
-  features: [String],
+  features: {
+    type: [String],
+    default: [],
+  },
   sku: {
     type: String,
     index: true,
@@ -60,7 +75,6 @@ const productSchema = new mongoose.Schema({
       return generateSlug(this.name) || `product-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     },
     index: true,
-    // not unique in schema (we manage it via partial index in MongoDB)
   },
   isActive: {
     type: Boolean,
