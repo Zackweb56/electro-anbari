@@ -19,7 +19,8 @@ export default function StoreHeader() {
   const [searchSuggestions, setSearchSuggestions] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
-  const [searchTimeout, setSearchTimeout] = useState(null)
+  // const [searchTimeout, setSearchTimeout] = useState(null)
+  const searchTimeoutRef = useRef(null)
   const searchInputRef = useRef(null)
   const searchDropdownRef = useRef(null)
   const pathname = usePathname()
@@ -56,49 +57,50 @@ export default function StoreHeader() {
   // Enhanced search functionality with debouncing
   const searchProducts = useCallback(async (query) => {
     if (query.length < 3) {
-      setSearchSuggestions([])
-      setShowSearchDropdown(false)
-      return
+      setSearchSuggestions([]);
+      setShowSearchDropdown(false);
+      return;
     }
 
-    setSearchLoading(true)
+    setSearchLoading(true);
     try {
-      const response = await fetch(`/api/public/products/search?q=${encodeURIComponent(query)}`)
-      if (!response.ok) throw new Error('Search failed')
-      const data = await response.json()
-      setSearchSuggestions(data)
-      setShowSearchDropdown(data.length > 0)
+      const response = await fetch(`/api/public/products/search?q=${encodeURIComponent(query)}`);
+      if (!response.ok) throw new Error('Search failed');
+      const data = await response.json();
+      setSearchSuggestions(data);
+      setShowSearchDropdown(data.length > 0);
     } catch (error) {
-      console.error('Search error:', error)
-      setSearchSuggestions([])
-      setShowSearchDropdown(false)
+      console.error('Search error:', error);
+      setSearchSuggestions([]);
+      setShowSearchDropdown(false);
     } finally {
-      setSearchLoading(false)
+      setSearchLoading(false);
     }
-  }, [])
+  }, []);
 
-  // Debounced search effect
+  // Debounced search effect - PROPERLY FIXED VERSION
   useEffect(() => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout)
+    // Clear any existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
 
     if (searchQuery.length >= 3) {
-      const timer = setTimeout(() => {
-        searchProducts(searchQuery)
-      }, 300)
-      setSearchTimeout(timer)
+      searchTimeoutRef.current = setTimeout(() => {
+        searchProducts(searchQuery);
+      }, 300);
     } else {
-      setSearchSuggestions([])
-      setShowSearchDropdown(false)
+      setSearchSuggestions([]);
+      setShowSearchDropdown(false);
     }
 
+    // Cleanup function
     return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout)
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
-    }
-  }, [searchQuery, searchProducts])
+    };
+  }, [searchQuery, searchProducts]); // searchTimeoutRef is stable, no need to include
 
   // Listen for cart updates
   useEffect(() => {
@@ -372,10 +374,10 @@ export default function StoreHeader() {
                       <div className="px-4 py-6 text-center">
                         <FaBox className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                         <div className="text-sm text-gray-500">
-                          Aucun produit trouvé pour "<span className="font-medium text-gray-700">{searchQuery}</span>"
+                          Aucun produit trouvé pour &quot;<span className="font-medium text-gray-700">{searchQuery}</span>&quot;
                         </div>
                         <div className="text-xs text-gray-400 mt-1">
-                          Essayez d'autres termes de recherche
+                          Essayez d&apos;autres termes de recherche
                         </div>
                       </div>
                     ) : null}
