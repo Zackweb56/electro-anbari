@@ -154,44 +154,35 @@ export default function StoreFooter() {
               <Link href="/about" className="hover:text-white transition-colors py-1 hover:translate-x-1 transform duration-200">À propos</Link>
               <Link href="/contact" className="hover:text-white transition-colors py-1 hover:translate-x-1 transform duration-200">Contact</Link>
             </div>
-
-            {/* Horaires d'ouverture */}
-            {config?.openingHours && (
-              <div className="mt-8">
-                <div className="flex items-center space-x-2 text-gray-300 mb-3">
-                  <FaClock className="w-4 h-4 text-green-400" />
-                  <span className="font-medium">Horaires</span>
-                </div>
-                <p className="text-gray-400 text-sm">{config.openingHours}</p>
-              </div>
-            )}
           </div>
 
           {/* Colonne 3: Politiques et services */}
-          <div className="text-center md:text-left">
-            <h3 className="text-lg font-semibold mb-6 text-white">Services</h3>
-            
-            <div className="text-gray-400 text-sm space-y-4">
-              {config?.shippingPolicy && (
-                <div className="flex items-start space-x-3 group cursor-pointer">
-                  <FaTruck className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                  <div className="text-left">
-                    <p className="font-medium text-gray-300 group-hover:text-white transition-colors">Livraison</p>
-                    <p className="text-sm">{config.shippingPolicy}</p>
+          {(config?.shippingPolicy || config?.returnPolicy) && (
+            <div className="text-center md:text-left">
+              <h3 className="text-lg font-semibold mb-6 text-white">Services</h3>
+              
+              <div className="text-gray-400 text-sm space-y-4">
+                {config?.shippingPolicy && (
+                  <div className="flex items-start space-x-3 group cursor-pointer">
+                    <FaTruck className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                    <div className="text-left">
+                      <p className="font-medium text-gray-300 group-hover:text-white transition-colors">Livraison</p>
+                      <p className="text-sm">{config.shippingPolicy}</p>
+                    </div>
                   </div>
-                </div>
-              )}
-              {config?.returnPolicy && (
-                <div className="flex items-start space-x-3 group cursor-pointer">
-                  <FaExchangeAlt className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                  <div className="text-left">
-                    <p className="font-medium text-gray-300 group-hover:text-white transition-colors">Retours</p>
-                    <p className="text-sm">{config.returnPolicy}</p>
+                )}
+                {config?.returnPolicy && (
+                  <div className="flex items-start space-x-3 group cursor-pointer">
+                    <FaExchangeAlt className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                    <div className="text-left">
+                      <p className="font-medium text-gray-300 group-hover:text-white transition-colors">Retours</p>
+                      <p className="text-sm">{config.returnPolicy}</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Colonne 4: Carte Google Maps premium */}
           <div className="text-center md:text-left">

@@ -96,7 +96,7 @@ export default function AdminSidebar({ isMobileOpen, onClose }) {
         {/* Header avec bouton fermer sur mobile */}
         <div className="px-8 py-3 border-b border-border flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-card-foreground">Electro Anbari Store</h1>
+            <h1 className="text-lg font-bold text-card-foreground">Electro Anbari</h1>
             <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
               Gestion de Magasin d&apos;Ordinateurs
             </p>

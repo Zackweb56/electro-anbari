@@ -4,276 +4,458 @@ import AdminLayout from '@/layouts/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Package, 
+  ShoppingCart, 
+  TrendingUp, 
+  AlertTriangle,
+  ArrowUpRight,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  User,
+  Phone,
+} from 'lucide-react';
+import { Wallet, PackageSearch } from 'lucide-react';
+import Link from 'next/link';
+import { toast } from 'sonner';
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalOrders: 0,
-    totalRevenue: 0,
-    lowStock: 0,
-    pendingOrders: 0,
-    outOfStock: 0
-  });
-
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [lowStockItems, setLowStockItems] = useState([]);
+export default function DashboardPage() {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats();
-    fetchRecentData();
+    fetchDashboardData();
+
+    return () => clearInterval(timer);
   }, []);
 
-  const fetchStats = async () => {
-    // Mock data - replace with actual API calls
-    setStats({
-      totalProducts: 156,
-      totalOrders: 89,
-      totalRevenue: 125430,
-      lowStock: 12,
-      pendingOrders: 8,
-      outOfStock: 3
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/dashboard');
+      if (!response.ok) throw new Error('Failed to fetch data');
+      const data = await response.json();
+      setDashboardData(data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Erreur lors du chargement des données du tableau de bord');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const {
+    monthlyOrders = 0,
+    monthlyRevenue = 0,
+    lowStockItems = 0,
+    outOfStockItems = 0,
+    pendingOrders = 0,
+    recentOrders = [],
+    orderStatusCounts = {}
+  } = dashboardData || {};
+
+  const stats = [
+    {
+      title: 'Revenu Mensuel',
+      value: `${monthlyRevenue.toLocaleString('fr-MA')} MAD`,
+      icon: Wallet,
+      description: 'Ce mois',
+      trend: '+12%',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-100 dark:bg-emerald-900/40',
+      badgeColor: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+    },
+    {
+      title: 'Commandes Mensuelles',
+      value: monthlyOrders.toLocaleString('fr-MA'),
+      icon: ShoppingCart,
+      description: 'Commandes ce mois',
+      trend: '+5%',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-100 dark:bg-blue-900/40',
+      badgeColor: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
+    },
+    {
+      title: 'Commandes en Attente',
+      value: pendingOrders.toLocaleString('fr-MA'),
+      icon: AlertTriangle,
+      description: 'Nécessitent confirmation',
+      trend: `${pendingOrders > 0 ? 'À traiter' : 'Aucune'}`,
+      color: 'text-amber-600 dark:text-amber-400',
+      bgColor: 'bg-amber-100 dark:bg-amber-900/40',
+      badgeColor: 'bg-amber-500/20 text-amber-600 dark:text-amber-400',
+    },
+    {
+      title: 'Alertes Stock',
+      value: (lowStockItems + outOfStockItems).toString(),
+      icon: PackageSearch,
+      description: 'Attention requise',
+      trend: `${outOfStockItems} en rupture`,
+      color:
+        outOfStockItems > 0
+          ? 'text-red-600 dark:text-red-400'
+          : 'text-purple-600 dark:text-purple-400',
+      bgColor:
+        outOfStockItems > 0
+          ? 'bg-red-100 dark:bg-red-900/40'
+          : 'bg-purple-100 dark:bg-purple-900/40',
+      badgeColor:
+        outOfStockItems > 0
+          ? 'bg-red-500/20 text-red-600 dark:text-red-400'
+          : 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
+    },
+  ];
+
+  const getStatusBadge = (status) => {
+    const statusColors = {
+      pending: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
+      confirmed: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+      processing: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+      shipped: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+      delivered: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',
+      cancelled: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',
+    };
+    
+    const statusLabels = {
+      pending: 'En Attente',
+      confirmed: 'Confirmée',
+      processing: 'En Traitement',
+      shipped: 'Expédiée',
+      delivered: 'Livrée',
+      cancelled: 'Annulée',
+    };
+
+    return (
+      <Badge variant="outline" className={`${statusColors[status]} font-medium text-xs px-2 py-1`}>
+        {statusLabels[status]}
+      </Badge>
+    );
+  };
+
+  const formatOrderDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
     });
   };
 
-  const fetchRecentData = async () => {
-    // Mock recent data
-    setRecentOrders([
-      { id: 1, customer: 'Mohamed Ali', amount: 2500, status: 'completed' },
-      { id: 2, customer: 'Fatima Zahra', amount: 1800, status: 'pending' },
-      { id: 3, customer: 'Ahmed Hassan', amount: 3200, status: 'completed' },
-    ]);
-
-    setLowStockItems([
-      { id: 1, name: 'Dell XPS 13', stock: 2, minStock: 5 },
-      { id: 2, name: 'MacBook Air M2', stock: 3, minStock: 5 },
-      { id: 3, name: 'HP Spectre x360', stock: 1, minStock: 3 },
-    ]);
-  };
-
-  const quickActions = [
-    {
-      label: 'Ajouter Produit',
-      description: 'Nouvel ordinateur',
-      href: '/admin/products/new',
-      icon: <PlusIcon className="h-4 w-4" />,
-      variant: 'default'
-    },
-    {
-      label: 'Gérer Catégories',
-      description: 'Organiser les catégories',
-      href: '/admin/categories',
-      icon: <CategoryIcon className="h-4 w-4" />,
-      variant: 'outline'
-    },
-    {
-      label: 'Voir Commandes',
-      description: 'Commandes en cours',
-      href: '/admin/orders',
-      icon: <OrdersIcon className="h-4 w-4" />,
-      variant: 'outline'
-    },
-    {
-      label: 'Rapports',
-      description: 'Analyses et statistiques',
-      href: '/admin/reports',
-      icon: <ChartIcon className="h-4 w-4" />,
-      variant: 'outline'
-    }
-  ];
-
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        {/* Page Header */}
+      <div className="space-y-8">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Tableau de Bord</h1>
             <p className="text-muted-foreground">
-              Aperçu de votre magasin d&apos;ordinateurs
+              Aperçu des performances de votre boutique
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-sm">
-              En ligne
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              Dernière mise à jour: Maintenant
-            </span>
-          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Produits Totaux"
-            value={stats.totalProducts}
-            description="Ordinateurs en stock"
-            icon={<ProductsIcon className="h-4 w-4" />}
-            trend="+12%"
-            trendPositive={true}
-          />
-          <StatCard
-            title="Commandes"
-            value={stats.totalOrders}
-            description="Commandes terminées"
-            icon={<OrdersIcon className="h-4 w-4" />}
-            trend="+8%"
-            trendPositive={true}
-          />
-          <StatCard
-            title="Revenu Total"
-            value={`${stats.totalRevenue.toLocaleString()} DH`}
-            description="Chiffre d'affaires"
-            icon={<RevenueIcon className="h-4 w-4" />}
-            trend="+15%"
-            trendPositive={true}
-          />
-          <StatCard
-            title="Stock Faible"
-            value={stats.lowStock}
-            description="Besoin de réapprovisionnement"
-            icon={<AlertIcon className="h-4 w-4" />}
-            trend="+3"
-            trendPositive={false}
-          />
-        </div>
-
-        {/* Quick Actions & Analytics */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Quick Actions */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Actions Rapides</CardTitle>
-              <CardDescription>
-                Accédez rapidement aux fonctionnalités principales
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {quickActions.map((action, index) => (
-                  <Button
-                    key={index}
-                    variant={action.variant}
-                    className="h-auto p-4 flex flex-col items-center justify-center gap-2"
-                    asChild
-                  >
-                    <a href={action.href}>
-                      <div className="flex items-center gap-2">
-                        {action.icon}
-                        <span className="font-semibold">{action.label}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground text-center">
-                        {action.description}
+        {/* Stats Grid - Small Cards */}
+        <div className="grid gap-3 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat, index) => (
+            <Card
+              key={index}
+              className="relative overflow-hidden border border-border bg-card/50 backdrop-blur-sm shadow-sm rounded-lg"
+            >
+              <CardHeader className="flex flex-row items-center justify-between px-3">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div
+                  className={`p-1.5 rounded-md ${stat.bgColor} bg-opacity-20 flex items-center justify-center`}
+                >
+                  <stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent className="px-3">
+                {loading ? (
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-5 w-20 rounded-md" />
+                    <Skeleton className="h-3 w-24 rounded-md" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-lg font-semibold tracking-tight text-foreground">
+                      {stat.value}
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-[10px] text-muted-foreground">
+                        {stat.description}
                       </p>
-                    </a>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Performance Metrics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance</CardTitle>
-              <CardDescription>Indicateurs clés</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Taux de conversion</span>
-                  <span className="font-semibold">4.2%</span>
-                </div>
-                <Progress value={42} className="h-2" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Stock moyen</span>
-                  <span className="font-semibold">78%</span>
-                </div>
-                <Progress value={78} className="h-2" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Satisfaction client</span>
-                  <span className="font-semibold">92%</span>
-                </div>
-                <Progress value={92} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0.5 border-0 font-medium ${stat.badgeColor}`}
+                      >
+                        {stat.trend}
+                      </Badge>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Recent Activity */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Bottom Section */}
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Recent Orders */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <OrdersIcon className="h-5 w-5" />
-                Commandes Récentes
-              </CardTitle>
-              <CardDescription>
-                {stats.pendingOrders} commandes en attente
-              </CardDescription>
+          <Card className="lg:col-span-2 border border-border bg-card/80 backdrop-blur-sm shadow-sm">
+            <CardHeader className="pb-3 border-b border-border/60">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <CardTitle>Commandes Récentes</CardTitle>
+                  <CardDescription>
+                    Dernières commandes de votre boutique
+                  </CardDescription>
+                </div>
+                <Button asChild variant="outline" size="sm" className="gap-1">
+                  <Link href="/admin/orders">
+                    Voir Tout <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent>
-              {recentOrders.length > 0 ? (
-                <div className="space-y-4">
+
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="space-y-3 p-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : recentOrders.length > 0 ? (
+                <div className="space-y-2 p-2">
                   {recentOrders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{order.customer}</p>
-                        <p className="text-sm text-muted-foreground">{order.amount} DH</p>
+                    <div
+                      key={order._id}
+                      className="group p-3 border border-border/50 rounded-lg hover:border-border transition-all duration-200 bg-card/70 hover:bg-accent/20 backdrop-blur-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        {/* Order Info */}
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
+                            <ShoppingCart className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <User className="h-3 w-3 text-muted-foreground" />
+                                <span className="font-semibold text-sm truncate max-w-[120px]">
+                                  {order.customer.name}
+                                </span>
+                              </div>
+                              {order.whatsappConfirmed && (
+                                <CheckCircle
+                                  className="h-3 w-3 text-green-500"
+                                  title="Confirmé par WhatsApp"
+                                />
+                              )}
+                              <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                <span>{order.customer.phone}</span>
+                              </div>
+                            </div>
+
+                            {/* Details */}
+                            <div className="flex flex-wrap items-center gap-4 text-xs">
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <span className="font-medium">N°:</span>
+                                <span className="font-mono text-foreground">
+                                  {order.orderNumber}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <span className="font-medium">Montant:</span>
+                                <span className="font-semibold text-foreground">
+                                  {order.totalAmount} MAD
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <span className="font-medium">Articles:</span>
+                                <span className="font-medium text-foreground">
+                                  {order.items.length}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3" />
+                              <span>{formatOrderDate(order.createdAt)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status + Action */}
+                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                          {getStatusBadge(order.status)}
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
+                          >
+                            <Link href={`/admin/orders/${order._id}`}>
+                              <ArrowUpRight className="w-3 h-3" />
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
-                      <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
-                        {order.status === 'completed' ? 'Complété' : 'En attente'}
-                      </Badge>
+
+                      {/* Mobile phone */}
+                      <div className="sm:hidden flex items-center gap-1 text-xs text-muted-foreground mt-2 ml-11">
+                        <Phone className="h-3 w-3" />
+                        <span>{order.customer.phone}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center text-muted-foreground py-8">
-                  <OrdersIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>Aucune commande récente</p>
+                <div className="text-center py-8 px-4">
+                  <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground font-medium">
+                    Aucune commande pour le moment
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Les commandes apparaîtront ici une fois que les clients commenceront à acheter.
+                  </p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Low Stock Alert */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertIcon className="h-5 w-5" />
-                Alertes Stock
-              </CardTitle>
-              <CardDescription>
-                {stats.outOfStock} produits en rupture
-              </CardDescription>
+          {/* Store Overview */}
+          <Card className="border border-border bg-card/80 backdrop-blur-sm shadow-sm">
+            <CardHeader className="pb-3 border-b border-border/60">
+              <CardTitle>Aperçu du Magasin</CardTitle>
+              <CardDescription>Résumé et actions rapides</CardDescription>
             </CardHeader>
-            <CardContent>
-              {lowStockItems.length > 0 ? (
-                <div className="space-y-4">
-                  {lowStockItems.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Stock: {item.stock} (min: {item.minStock})
-                        </p>
-                      </div>
-                      <Badge variant={item.stock === 0 ? 'destructive' : 'warning'}>
-                        {item.stock === 0 ? 'Rupture' : 'Stock faible'}
-                      </Badge>
-                    </div>
+            <CardContent className="space-y-4">
+              {/* Quick Actions */}
+              <div>
+                <h4 className="text-sm font-medium mb-2 text-muted-foreground">
+                  Actions Rapides
+                </h4>
+                <div className="space-y-1.5">
+                  {[
+                    { label: 'Produits', icon: Package, link: '/admin/products' },
+                    { label: 'Commandes', icon: ShoppingCart, link: '/admin/orders' },
+                    { label: 'Stock', icon: TrendingUp, link: '/admin/stock' },
+                  ].map((action) => (
+                    <Button
+                      key={action.label}
+                      asChild
+                      variant="outline"
+                      className="w-full justify-start h-9 hover:bg-accent/30 transition-colors"
+                    >
+                      <Link href={action.link}>
+                        <action.icon className="h-3.5 w-3.5 mr-2" />
+                        <span className="text-sm">{action.label}</span>
+                      </Link>
+                    </Button>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center text-muted-foreground py-8">
-                  <CheckIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>Stock optimal</p>
+              </div>
+
+              {/* Order Status Summary */}
+              <div>
+                <h4 className="text-sm font-medium mb-2 text-muted-foreground">
+                  Statut des Commandes
+                </h4>
+                {loading ? (
+                  <div className="space-y-1.5">
+                    {[...Array(4)].map((_, i) => (
+                      <Skeleton key={i} className="h-5 w-full rounded" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {Object.entries(orderStatusCounts || {}).map(([status, count]) => (
+                      <div
+                        key={status}
+                        className="flex items-center justify-between text-sm p-1.5 rounded-md hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center space-x-2">
+                          {status === 'pending' && (
+                            <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                          )}
+                          {status === 'confirmed' && (
+                            <CheckCircle className="h-3 w-3 text-blue-500" />
+                          )}
+                          {status === 'processing' && (
+                            <TrendingUp className="h-3 w-3 text-purple-500" />
+                          )}
+                          {status === 'shipped' && (
+                            <Package className="h-3 w-3 text-indigo-500" />
+                          )}
+                          {status === 'delivered' && (
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                          )}
+                          {status === 'cancelled' && (
+                            <XCircle className="h-3 w-3 text-red-500" />
+                          )}
+                          <span className="text-xs font-medium capitalize text-foreground">
+                            {status === 'pending' && 'En Attente'}
+                            {status === 'confirmed' && 'Confirmée'}
+                            {status === 'processing' && 'En Traitement'}
+                            {status === 'shipped' && 'Expédiée'}
+                            {status === 'delivered' && 'Livrée'}
+                            {status === 'cancelled' && 'Annulée'}
+                          </span>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs font-mono min-w-6 h-5 justify-center px-1"
+                        >
+                          {count}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Stock Alerts */}
+              {(lowStockItems > 0 || outOfStockItems > 0) && !loading && (
+                <div className="pt-3 border-t border-border/60">
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">
+                    Alertes de Stock
+                  </h4>
+                  {outOfStockItems > 0 && (
+                    <div className="flex items-center justify-between text-sm p-1.5 rounded-md bg-red-50 dark:bg-red-950/20 mb-1.5">
+                      <div className="flex items-center">
+                        <XCircle className="h-3.5 w-3.5 text-red-500 mr-1.5" />
+                        <span className="text-red-700 dark:text-red-400 font-medium text-xs">
+                          Rupture
+                        </span>
+                      </div>
+                      <Badge
+                        variant="destructive"
+                        className="text-xs h-5 px-2 font-mono"
+                      >
+                        {outOfStockItems}
+                      </Badge>
+                    </div>
+                  )}
+                  {lowStockItems > 0 && (
+                    <div className="flex items-center justify-between text-sm p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/20">
+                      <div className="flex items-center">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mr-1.5" />
+                        <span className="text-amber-700 dark:text-amber-400 font-medium text-xs">
+                          Stock Faible
+                        </span>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 text-xs h-5 font-mono px-2"
+                      >
+                        {lowStockItems}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -281,95 +463,5 @@ export default function AdminDashboard() {
         </div>
       </div>
     </AdminLayout>
-  );
-}
-
-// Stat Card Component
-function StatCard({ title, value, description, icon, trend, trendPositive }) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className="h-4 w-4 text-muted-foreground">
-          {icon}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">{description}</p>
-          {trend && (
-            <Badge variant={trendPositive ? 'default' : 'destructive'} className="text-xs">
-              {trend}
-            </Badge>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// SVG Icon Components
-function ProductsIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-    </svg>
-  );
-}
-
-function OrdersIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-    </svg>
-  );
-}
-
-function RevenueIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-    </svg>
-  );
-}
-
-function AlertIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-    </svg>
-  );
-}
-
-function PlusIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-    </svg>
-  );
-}
-
-function CategoryIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-    </svg>
-  );
-}
-
-function ChartIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-    </svg>
-  );
-}
-
-function CheckIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-    </svg>
   );
 }

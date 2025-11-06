@@ -344,9 +344,9 @@ export default function StockPage() {
             )}
             <div className="min-w-0 flex-1">
               <div className="font-medium text-sm truncate">{product.name}</div>
-              {/* <div className="text-xs text-muted-foreground truncate">
+              <div className="text-[10px] text-muted-foreground truncate">
                 SKU: {product.sku || 'N/A'}
-              </div> */}
+              </div>
               <div className="text-xs text-blue-600 font-medium">
                 {product.price?.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })}
               </div>
@@ -442,7 +442,7 @@ export default function StockPage() {
                 {sellThroughRate.toFixed(1)}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div className="w-full bg-neutral-800 rounded-full h-1.5">
               <div 
                 className={`h-1.5 rounded-full ${
                   sellThroughRate > 50 ? 'bg-green-500' : 
@@ -514,16 +514,16 @@ export default function StockPage() {
         </div>
 
         {/* Enhanced Stats - Compact Version */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Card className="border-border bg-card">
-            <CardContent className="px-3 py-0">
+            <CardContent className="px-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <p className="text-[10px] font-medium text-muted-foreground">Stock Actuel</p>
+                  <p className="text-sm font-medium text-muted-foreground">Stock Actuel</p>
                   <p className="text-lg font-bold text-green-600 dark:text-green-400">
                     {totalCurrentQuantity.toLocaleString('fr-FR')}
                   </p>
-                  <p className="text-[9px] text-muted-foreground">
+                  <p className="text-[12px] text-muted-foreground">
                     {stock.length} produit(s)
                   </p>
                 </div>
@@ -536,11 +536,11 @@ export default function StockPage() {
             <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <p className="text-[10px] font-medium text-muted-foreground">Ventes Totales</p>
+                  <p className="text-sm font-medium text-muted-foreground">Ventes Totales</p>
                   <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                     {totalSoldQuantity.toLocaleString('fr-FR')}
                   </p>
-                  <p className="text-[9px] text-muted-foreground">
+                  <p className="text-[12px] text-muted-foreground">
                     {totalInitialQuantity > 0 ? 
                       `${((totalSoldQuantity / totalInitialQuantity) * 100).toFixed(1)}%` 
                       : '0%'
@@ -556,11 +556,11 @@ export default function StockPage() {
             <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <p className="text-[10px] font-medium text-muted-foreground">Valeur Stock</p>
+                  <p className="text-sm font-medium text-muted-foreground">Valeur Stock</p>
                   <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                     {totalValue.toLocaleString('fr-FR')}
                   </p>
-                  <p className="text-[9px] text-muted-foreground">MAD</p>
+                  <p className="text-[12px] text-muted-foreground">MAD</p>
                 </div>
                 <CoinsIcon className="w-5 h-5 text-purple-500" />
               </div>
@@ -568,36 +568,29 @@ export default function StockPage() {
           </Card>
 
           <Card className="border-border bg-card">
-            <CardContent className="px-3 -py-2">
+            <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <p className="text-[10px] font-medium text-muted-foreground">Alertes</p>
-                  <div className="flex items-center space-x-1.5">
-                    <div className="flex items-center space-x-1">
-                      <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
-                      <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
-                        {lowStockItems.length}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                      <span className="text-xs font-bold text-red-600 dark:text-red-400">
-                        {outOfStockItems.length}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-[9px] text-muted-foreground">
-                    Faible / Rupture
+                  <p className="text-sm font-medium text-muted-foreground">Revenus Ventes</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                    {stock.reduce((total, item) => {
+                      const productPrice = item.product?.price || 0;
+                      const soldQuantity = item.soldQuantity || 0;
+                      return total + (productPrice * soldQuantity);
+                    }, 0).toLocaleString('fr-FR')} MAD
+                  </p>
+                  <p className="text-[12px] text-muted-foreground">
+                    {totalSoldQuantity} unités vendues
                   </p>
                 </div>
-                <AlertTriangleIcon className="w-5 h-5 text-orange-500" />
+                <CoinsIcon className="w-5 h-5 text-green-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Quick Status Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Card className="border-border bg-card">
             <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
@@ -701,7 +694,7 @@ export default function StockPage() {
             </DialogHeader>
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="product">Produit *</Label>
+                <Label htmlFor="product">Produit <span className="text-red-600">*</span></Label>
                 <Select
                   value={createFormData.product}
                   onValueChange={(value) => setCreateFormData(prev => ({ ...prev, product: value }))}
@@ -727,7 +720,7 @@ export default function StockPage() {
           
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="initialQuantity">Quantité Initiale *</Label>
+                  <Label htmlFor="initialQuantity">Quantité Initiale <span className="text-red-600">*</span></Label>
                   <Input
                     id="initialQuantity"
                     type="number"
@@ -746,7 +739,7 @@ export default function StockPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="currentQuantity">Quantité Actuelle *</Label>
+                  <Label htmlFor="currentQuantity">Quantité Actuelle <span className="text-red-600">*</span></Label>
                   <Input
                     id="currentQuantity"
                     type="number"
@@ -862,7 +855,7 @@ export default function StockPage() {
 
               {/* NEW SALES Input */}
               <div className="space-y-2">
-                <Label htmlFor="newSales">Nouvelles Ventes WhatsApp *</Label>
+                <Label htmlFor="newSales">Nouvelles Ventes WhatsApp <span className="text-red-600">*</span></Label>
                 <Input
                   id="newSales"
                   type="number"

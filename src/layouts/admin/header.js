@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,10 +12,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Calendar } from 'lucide-react';
 
 export default function AdminHeader({ onMenuToggle }) {
   const { data: session } = useSession();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const handleLogout = () => {
     signOut({ callbackUrl: '/admin/login' });
@@ -32,11 +32,13 @@ export default function AdminHeader({ onMenuToggle }) {
       .slice(0, 2);
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      console.log('Recherche:', searchQuery);
-    }
+  const formatFullDate = (date) => {
+    return date.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -57,23 +59,19 @@ export default function AdminHeader({ onMenuToggle }) {
             </Button>
           </div>
 
-          {/* Center: Search Bar */}
-          <div className="flex-1 max-w-md mx-4">
-            <form onSubmit={handleSearch} className="relative">
-              <Input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pr-10"
-              />
-              <button
-                type="submit"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <SearchIcon className="w-4 h-4" />
-              </button>
-            </form>
+          {/* Center: Date */}
+          <div className="flex-1 flex justify-center md:justify-start">
+            <div className="flex items-center gap-3 text-sm text-neutral-foreground bg-neutral/50 px-4 py-2 rounded-lg border">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">{formatFullDate(currentTime)}</span>
+              <span className="sm:hidden">
+                {currentTime.toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </span>
+            </div>
           </div>
 
           {/* Right: User Dropdown */}
@@ -137,16 +135,7 @@ export default function AdminHeader({ onMenuToggle }) {
   );
 }
 
-// Ajouter l'icône de recherche
-function SearchIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
-  );
-}
-
-// Icon components (keep the same)
+// Icon components
 function UserIcon(props) {
   return (
     <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">

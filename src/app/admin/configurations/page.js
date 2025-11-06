@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 export default function StoreConfigurations() {
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState({
-    storeName: 'Electro Anbari Store',
+    storeName: 'Electro Anbari',
     storeDescription: 'Votre magasin d\'ordinateurs de confiance',
     contactEmail: 'contact@electro-anbari.com',
     contactPhone: '+212 6 00 00 00 00',
@@ -145,7 +145,7 @@ export default function StoreConfigurations() {
                       id="storeName"
                       value={config.storeName}
                       onChange={(e) => setConfig(prev => ({ ...prev, storeName: e.target.value }))}
-                      placeholder="Electro Anbari Store"
+                      placeholder="Electro Anbari"
                     />
                   </div>
                   <div className="space-y-2">

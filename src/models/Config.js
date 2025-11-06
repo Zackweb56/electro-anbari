@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const configSchema = new mongoose.Schema({
   storeName: {
     type: String,
-    default: 'Electro Anbari Store',
+    default: 'Electro Anbari',
   },
   storeDescription: {
     type: String,

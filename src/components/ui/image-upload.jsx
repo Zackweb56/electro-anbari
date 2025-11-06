@@ -8,10 +8,12 @@ export function ImageUpload({
   onMultipleUpload, 
   value, 
   onChange,
+  onUploadStart, // New prop for upload start callback
+  onUploadEnd,   // New prop for upload end callback
   buttonText = "Télécharger une image",
   multiple = false,
-  maxFiles = 5, // Reduced from 10 to 5 for performance
-  currentImages = [], // Track current number of images
+  maxFiles = 5,
+  currentImages = [],
 }) {
   const [uploading, setUploading] = useState(false);
   const isLimitReached = multiple && currentImages.length >= maxFiles;
@@ -115,6 +117,11 @@ export function ImageUpload({
     setTotalFiles(Math.min(files.length, maxFiles - currentImages.length));
     setUploadProgress(0);
     
+    // Call upload start callback
+    if (onUploadStart) {
+      onUploadStart();
+    }
+    
     try {
       // Validate all files first using Promise.all for parallel validation
       const validationPromises = files
@@ -170,6 +177,11 @@ export function ImageUpload({
       setCurrentFileIndex(0);
       setTotalFiles(0);
       event.target.value = '';
+      
+      // Call upload end callback
+      if (onUploadEnd) {
+        onUploadEnd();
+      }
     }
   };
 

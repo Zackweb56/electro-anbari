@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
-import { FaSearch, FaShoppingCart, FaBars, FaTimes, FaChevronDown, FaFolder, FaSpinner } from 'react-icons/fa'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { FaSearch, FaShoppingCart, FaBars, FaTimes, FaChevronDown, FaFolder, FaSpinner, FaBox, FaTag } from 'react-icons/fa'
 import CartDrawer from '@/components/store/CartDrawer'
 import Image from 'next/image';
 
@@ -15,7 +15,15 @@ export default function StoreHeader() {
   const [categories, setCategories] = useState([])
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
   const [loadingCategories, setLoadingCategories] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchSuggestions, setSearchSuggestions] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false)
+  const [searchTimeout, setSearchTimeout] = useState(null)
+  const searchInputRef = useRef(null)
+  const searchDropdownRef = useRef(null)
   const pathname = usePathname()
+  const router = useRouter()
 
   // Effet pour détecter le scroll
   useEffect(() => {
@@ -45,6 +53,53 @@ export default function StoreHeader() {
     fetchCategories()
   }, [])
 
+  // Enhanced search functionality with debouncing
+  const searchProducts = useCallback(async (query) => {
+    if (query.length < 3) {
+      setSearchSuggestions([])
+      setShowSearchDropdown(false)
+      return
+    }
+
+    setSearchLoading(true)
+    try {
+      const response = await fetch(`/api/public/products/search?q=${encodeURIComponent(query)}`)
+      if (!response.ok) throw new Error('Search failed')
+      const data = await response.json()
+      setSearchSuggestions(data)
+      setShowSearchDropdown(data.length > 0)
+    } catch (error) {
+      console.error('Search error:', error)
+      setSearchSuggestions([])
+      setShowSearchDropdown(false)
+    } finally {
+      setSearchLoading(false)
+    }
+  }, [])
+
+  // Debounced search effect
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout)
+    }
+
+    if (searchQuery.length >= 3) {
+      const timer = setTimeout(() => {
+        searchProducts(searchQuery)
+      }, 300)
+      setSearchTimeout(timer)
+    } else {
+      setSearchSuggestions([])
+      setShowSearchDropdown(false)
+    }
+
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout)
+      }
+    }
+  }, [searchQuery, searchProducts])
+
   // Listen for cart updates
   useEffect(() => {
     const handleCartUpdate = () => {
@@ -60,17 +115,49 @@ export default function StoreHeader() {
     }
   }, [])
 
-  // Close categories dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // Close categories dropdown
       if (!event.target.closest('.categories-dropdown')) {
         setIsCategoriesOpen(false)
+      }
+      
+      // Close search dropdown
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target) &&
+          searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+        setShowSearchDropdown(false)
       }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Handle search submission
+  const handleSearchSubmit = (e) => {
+    e.preventDefault()
+    if (searchQuery.trim().length >= 3) {
+      router.push(`/store?search=${encodeURIComponent(searchQuery)}`)
+      setShowSearchDropdown(false)
+      setSearchQuery('')
+    }
+  }
+
+  // Handle product selection from search
+  const handleProductSelect = (productSlug) => {
+    router.push(`/product/${productSlug}`)
+    setShowSearchDropdown(false)
+    setSearchQuery('')
+    setIsMenuOpen(false)
+  }
+
+  // Highlight matching text in search results
+  const highlightMatch = (text, query) => {
+    if (!text || !query) return text;
+    const regex = new RegExp(`(${query})`, 'gi');
+    return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-600">$1</mark>');
+  };
 
   const navigation = [
     { name: 'Accueil', href: '/home', current: pathname === '/home' },
@@ -189,14 +276,111 @@ export default function StoreHeader() {
             <div className="flex items-center space-x-3">
               {/* Search - Desktop Only */}
               <div className="hidden sm:block relative">
-                <input
-                  type="text"
-                  placeholder="Rechercher un produit..."
-                  className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm"
-                />
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                  <FaSearch className="w-4 h-4 text-gray-400" />
-                </div>
+                <form onSubmit={handleSearchSubmit} className="relative">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Rechercher un produit..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => searchQuery.length >= 3 && setShowSearchDropdown(true)}
+                    className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm"
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                    <FaSearch className="w-4 h-4 text-gray-400" />
+                  </div>
+                  {searchQuery.length >= 3 && (
+                    <button
+                      type="submit"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-700"
+                    >
+                      <FaSearch className="w-4 h-4" />
+                    </button>
+                  )}
+                </form>
+                
+                {/* Search Dropdown */}
+                {showSearchDropdown && (
+                  <div 
+                    ref={searchDropdownRef}
+                    className="absolute top-full left-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 max-h-80 overflow-y-auto"
+                  >
+                    {searchLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <FaSpinner className="w-5 h-5 text-blue-600 animate-spin mr-3" />
+                        <span className="text-sm text-gray-600">Recherche en cours...</span>
+                      </div>
+                    ) : searchSuggestions.length > 0 ? (
+                      <>
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Produits trouvés ({searchSuggestions.length})
+                          </div>
+                        </div>
+                        {searchSuggestions.map((product) => (
+                          <button
+                            key={product._id}
+                            onClick={() => handleProductSelect(product.slug)}
+                            className="flex items-center space-x-3 w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors group"
+                          >
+                            {product.mainImage ? (
+                              <Image
+                                src={product.mainImage}
+                                alt={product.name}
+                                width={48}
+                                height={48}
+                                className="w-12 h-12 rounded-lg object-cover border border-gray-200 group-hover:border-blue-300 transition-colors"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                                <FaBox className="w-5 h-5 text-gray-500 group-hover:text-blue-500" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div 
+                                className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors text-sm mb-1"
+                                dangerouslySetInnerHTML={{ 
+                                  __html: highlightMatch(product.name, searchQuery) 
+                                }}
+                              />
+                              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                {product.brand?.name && (
+                                  <span className="flex items-center space-x-1">
+                                    <FaTag className="w-3 h-3" />
+                                    <span>{product.brand.name}</span>
+                                  </span>
+                                )}
+                                {product.category?.name && (
+                                  <span>• {product.category.name}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-semibold text-blue-600">
+                                {product.price} MAD
+                              </div>
+                              {product.comparePrice && product.comparePrice > product.price && (
+                                <div className="text-xs text-gray-400 line-through">
+                                  {product.comparePrice} MAD
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    ) : searchQuery.length >= 3 ? (
+                      <div className="px-4 py-6 text-center">
+                        <FaBox className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <div className="text-sm text-gray-500">
+                          Aucun produit trouvé pour "<span className="font-medium text-gray-700">{searchQuery}</span>"
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          Essayez d'autres termes de recherche
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
 
               {/* Cart - Desktop Only */}
@@ -231,14 +415,64 @@ export default function StoreHeader() {
             <div className="lg:hidden py-4 border-t border-gray-200 bg-white/95 backdrop-blur-md">
               {/* Mobile Search */}
               <div className="mb-4 px-2">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Rechercher..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                </div>
+                <form onSubmit={handleSearchSubmit}>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Rechercher un produit..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                    />
+                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  </div>
+                </form>
+                
+                {/* Mobile Search Dropdown */}
+                {showSearchDropdown && (
+                  <div className="mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-y-auto">
+                    {searchLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <FaSpinner className="w-5 h-5 text-blue-600 animate-spin mr-3" />
+                        <span className="text-sm text-gray-600">Recherche...</span>
+                      </div>
+                    ) : searchSuggestions.length > 0 ? (
+                      searchSuggestions.map((product) => (
+                        <button
+                          key={product._id}
+                          onClick={() => handleProductSelect(product.slug)}
+                          className="flex items-center space-x-3 w-full px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-blue-50 transition-colors"
+                        >
+                          {product.mainImage ? (
+                            <Image
+                              src={product.mainImage}
+                              alt={product.name}
+                              width={40}
+                              height={40}
+                              className="w-10 h-10 rounded object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
+                              <FaBox className="w-4 h-4 text-gray-500" />
+                            </div>
+                          )}
+                          <div className="flex-1 text-left">
+                            <div className="font-medium text-sm text-gray-900">{product.name}</div>
+                            <div className="text-xs text-gray-500">
+                              {product.brand?.name} • {product.price} MAD
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    ) : searchQuery.length >= 3 ? (
+                      <div className="px-4 py-6 text-center">
+                        <div className="text-sm text-gray-500">
+                          Aucun produit trouvé
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
               
               <div className="flex flex-col space-y-1">

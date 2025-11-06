@@ -43,6 +43,7 @@ export default function CategoriesPage() {
     isActive: true,
   });
   const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false); // New state for image upload
 
   useEffect(() => {
     fetchCategories();
@@ -97,6 +98,13 @@ export default function CategoriesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prevent submission if image is still uploading
+    if (imageUploading) {
+      toast.error('Veuillez attendre la fin du téléchargement de l\'image');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -165,6 +173,7 @@ export default function CategoriesPage() {
       isActive: true,
     });
     setSelectedCategory(null);
+    setImageUploading(false); // Reset upload state
   };
 
   const openCreateDialog = () => {
@@ -179,12 +188,23 @@ export default function CategoriesPage() {
       image: category.image || '',
       isActive: category.isActive,
     });
+    setImageUploading(false); // Reset upload state
     setDialogOpen(true);
   };
 
   const openDeleteDialog = (category) => {
     setSelectedCategory(category);
     setDeleteDialogOpen(true);
+  };
+
+  // Handle image upload start
+  const handleImageUploadStart = () => {
+    setImageUploading(true);
+  };
+
+  // Handle image upload end
+  const handleImageUploadEnd = () => {
+    setImageUploading(false);
   };
 
   const canDeleteCategory = (category) => {
@@ -344,6 +364,8 @@ export default function CategoriesPage() {
                 <ImageUpload
                   value={formData.image}
                   onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                  onUploadStart={handleImageUploadStart} // Pass upload start handler
+                  onUploadEnd={handleImageUploadEnd} // Pass upload end handler
                   buttonText="Upload Image"
                   multiple={false}
                 />
@@ -388,15 +410,19 @@ export default function CategoriesPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setDialogOpen(false)}
-                  disabled={loading}
+                  disabled={loading || imageUploading}
                 >
                   Annuler
                 </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? (
+                <Button 
+                  type="submit" 
+                  disabled={loading || imageUploading}
+                  className="relative"
+                >
+                  {loading || imageUploading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                      {selectedCategory ? 'Modification...' : 'Création...'}
+                      {imageUploading ? 'Téléchargement...' : selectedCategory ? 'Modification...' : 'Création...'}
                     </>
                   ) : (
                     selectedCategory ? 'Modifier' : 'Créer'
@@ -419,7 +445,6 @@ export default function CategoriesPage() {
               </AlertDialogTitle>
             </AlertDialogHeader>
             
-            {/* Remplacer AlertDialogDescription par un div régulier */}
             <div className="text-sm text-muted-foreground">
               {selectedCategory?.productCount > 0 ? (
                 <div className="space-y-2">

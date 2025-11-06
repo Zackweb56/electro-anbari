@@ -43,6 +43,7 @@ export default function BrandsPage() {
     isActive: true,
   });
   const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false); // New state for image upload
 
   useEffect(() => {
     fetchBrands();
@@ -97,6 +98,13 @@ export default function BrandsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prevent submission if image is still uploading
+    if (imageUploading) {
+      toast.error('Veuillez attendre la fin du téléchargement du logo');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -166,6 +174,7 @@ export default function BrandsPage() {
       isActive: true,
     });
     setSelectedBrand(null);
+    setImageUploading(false); // Reset upload state
   };
 
   const openCreateDialog = () => {
@@ -180,12 +189,23 @@ export default function BrandsPage() {
       logo: brand.logo || '',
       isActive: brand.isActive,
     });
+    setImageUploading(false); // Reset upload state
     setDialogOpen(true);
   };
 
   const openDeleteDialog = (brand) => {
     setSelectedBrand(brand);
     setDeleteDialogOpen(true);
+  };
+
+  // Handle image upload start
+  const handleImageUploadStart = () => {
+    setImageUploading(true);
+  };
+
+  // Handle image upload end
+  const handleImageUploadEnd = () => {
+    setImageUploading(false);
   };
 
   // Helper function to check if brand can be deleted
@@ -346,6 +366,8 @@ export default function BrandsPage() {
                 <ImageUpload
                   value={formData.logo}
                   onChange={(url) => setFormData(prev => ({ ...prev, logo: url }))}
+                  onUploadStart={handleImageUploadStart} // Pass upload start handler
+                  onUploadEnd={handleImageUploadEnd} // Pass upload end handler
                   buttonText="Upload Logo"
                   multiple={false}
                 />
@@ -392,15 +414,19 @@ export default function BrandsPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setDialogOpen(false)}
-                  disabled={loading}
+                  disabled={loading || imageUploading}
                 >
                   Annuler
                 </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? (
+                <Button 
+                  type="submit" 
+                  disabled={loading || imageUploading}
+                  className="relative"
+                >
+                  {loading || imageUploading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                      {selectedBrand ? 'Modification...' : 'Création...'}
+                      {imageUploading ? 'Téléchargement...' : selectedBrand ? 'Modification...' : 'Création...'}
                     </>
                   ) : (
                     selectedBrand ? 'Modifier' : 'Créer'
