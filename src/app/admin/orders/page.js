@@ -202,6 +202,10 @@ export default function OrdersPage() {
     setDeleteDialogOpen(true);
   };
 
+  const isStatusChangeDisabled = (order) => {
+    return order.status === 'cancelled';
+  };
+
   const getStatusVariant = (status) => {
     const variants = {
       pending: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:hover:bg-yellow-900/50',
@@ -323,10 +327,12 @@ export default function OrdersPage() {
           <Select
             value={order.status}
             onValueChange={(value) => handleStatusUpdate(order, value)}
+            disabled={isStatusChangeDisabled(order)}
           >
             <SelectTrigger className={`
               w-32 h-8 text-xs font-medium border-0 shadow-none
               ${getStatusVariant(order.status)}
+              ${isStatusChangeDisabled(order) ? 'opacity-50 cursor-not-allowed' : ''}
             `}>
               <SelectValue />
             </SelectTrigger>
@@ -711,7 +717,9 @@ export default function OrdersPage() {
               <AlertDialogTitle>Supprimer la commande</AlertDialogTitle>
               <AlertDialogDescription>
                 Êtes-vous sûr de vouloir supprimer la commande &quot;<b>{selectedOrder?.orderNumber}</b>&quot; ?
-                Le stock sera retourné à l&apos;inventaire. Cette action ne peut pas être annulée.
+                {selectedOrder?.status !== 'cancelled' && " Le stock sera retourné à l'inventaire."}
+                {selectedOrder?.status === 'cancelled' && " Le stock a déjà été retourné (commande annulée)."}
+                Cette action ne peut pas être annulée.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

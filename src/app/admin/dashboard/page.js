@@ -27,8 +27,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
-
-    return () => clearInterval(timer);
   }, []);
 
   const fetchDashboardData = async () => {
@@ -155,45 +153,46 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid - Small Cards */}
-        <div className="grid gap-3 xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 p-1">
           {stats.map((stat, index) => (
             <Card
               key={index}
-              className="relative overflow-hidden border border-border bg-card/50 backdrop-blur-sm shadow-sm rounded-lg"
+              className="relative border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 rounded-xl p-3 min-h-[120px] flex flex-col justify-between"
             >
-              <CardHeader className="flex flex-row items-center justify-between px-3">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+                <CardTitle className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
                   {stat.title}
                 </CardTitle>
                 <div
-                  className={`p-1.5 rounded-md ${stat.bgColor} bg-opacity-20 flex items-center justify-center`}
+                  className={`p-1.5 rounded-lg ${stat.bgColor} bg-opacity-15 flex items-center justify-center shrink-0`}
                 >
-                  <stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
               </CardHeader>
-              <CardContent className="px-3">
+              
+              <CardContent className="p-0 flex flex-col flex-grow justify-end">
                 {loading ? (
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-5 w-20 rounded-md" />
-                    <Skeleton className="h-3 w-24 rounded-md" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-16 rounded-md" />
+                    <Skeleton className="h-3 w-20 rounded-md" />
                   </div>
                 ) : (
-                  <>
-                    <div className="text-lg font-semibold tracking-tight text-foreground">
-                      {stat.value}
-                    </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-[10px] text-muted-foreground">
-                        {stat.description}
-                      </p>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold text-foreground truncate">
+                        {stat.value}
+                      </span>
                       <Badge
-                        variant="outline"
-                        className={`text-[10px] px-1.5 py-0.5 border-0 font-medium ${stat.badgeColor}`}
+                        variant="secondary"
+                        className={`text-[10px] px-1.5 py-0.5 font-medium h-5 ${stat.badgeColor} border-0`}
                       >
                         {stat.trend}
                       </Badge>
                     </div>
-                  </>
+                    <p className="text-[11px] text-muted-foreground leading-tight line-clamp-2">
+                      {stat.description}
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -228,90 +227,92 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : recentOrders.length > 0 ? (
-                <div className="space-y-2 p-2">
-                  {recentOrders.map((order) => (
-                    <div
-                      key={order._id}
-                      className="group p-3 border border-border/50 rounded-lg hover:border-border transition-all duration-200 bg-card/70 hover:bg-accent/20 backdrop-blur-sm"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        {/* Order Info */}
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
-                            <ShoppingCart className="h-4 w-4 text-primary" />
+                <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent hover:scrollbar-thumb-border/60">
+                  <div className="space-y-2 p-2">
+                    {recentOrders.map((order) => (
+                      <div
+                        key={order._id}
+                        className="group p-3 border border-border/50 rounded-lg hover:border-border transition-all duration-200 bg-card/70 hover:bg-accent/20 backdrop-blur-sm"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          {/* Order Info */}
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
+                              <ShoppingCart className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <User className="h-3 w-3 text-muted-foreground" />
+                                  <span className="font-semibold text-sm truncate max-w-[120px]">
+                                    {order.customer.name}
+                                  </span>
+                                </div>
+                                {order.whatsappConfirmed && (
+                                  <CheckCircle
+                                    className="h-3 w-3 text-green-500"
+                                    title="Confirmé par WhatsApp"
+                                  />
+                                )}
+                                <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Phone className="h-3 w-3" />
+                                  <span>{order.customer.phone}</span>
+                                </div>
+                              </div>
+
+                              {/* Details */}
+                              <div className="flex flex-wrap items-center gap-4 text-xs">
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <span className="font-medium">N°:</span>
+                                  <span className="font-mono text-foreground">
+                                    {order.orderNumber}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <span className="font-medium">Montant:</span>
+                                  <span className="font-semibold text-foreground">
+                                    {order.totalAmount} MAD
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <span className="font-medium">Articles:</span>
+                                  <span className="font-medium text-foreground">
+                                    {order.items.length}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Calendar className="h-3 w-3" />
+                                <span>{formatOrderDate(order.createdAt)}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0 space-y-1.5">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <div className="flex items-center gap-1.5">
-                                <User className="h-3 w-3 text-muted-foreground" />
-                                <span className="font-semibold text-sm truncate max-w-[120px]">
-                                  {order.customer.name}
-                                </span>
-                              </div>
-                              {order.whatsappConfirmed && (
-                                <CheckCircle
-                                  className="h-3 w-3 text-green-500"
-                                  title="Confirmé par WhatsApp"
-                                />
-                              )}
-                              <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-                                <Phone className="h-3 w-3" />
-                                <span>{order.customer.phone}</span>
-                              </div>
-                            </div>
 
-                            {/* Details */}
-                            <div className="flex flex-wrap items-center gap-4 text-xs">
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <span className="font-medium">N°:</span>
-                                <span className="font-mono text-foreground">
-                                  {order.orderNumber}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <span className="font-medium">Montant:</span>
-                                <span className="font-semibold text-foreground">
-                                  {order.totalAmount} MAD
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <span className="font-medium">Articles:</span>
-                                <span className="font-medium text-foreground">
-                                  {order.items.length}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3" />
-                              <span>{formatOrderDate(order.createdAt)}</span>
-                            </div>
+                          {/* Status + Action */}
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                            {getStatusBadge(order.status)}
+                            <Button
+                              asChild
+                              variant="ghost"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
+                            >
+                              <Link href={`/admin/orders/${order._id}`}>
+                                <ArrowUpRight className="w-3 h-3" />
+                              </Link>
+                            </Button>
                           </div>
                         </div>
 
-                        {/* Status + Action */}
-                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                          {getStatusBadge(order.status)}
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
-                          >
-                            <Link href={`/admin/orders/${order._id}`}>
-                              <ArrowUpRight className="w-3 h-3" />
-                            </Link>
-                          </Button>
+                        {/* Mobile phone */}
+                        <div className="sm:hidden flex items-center gap-1 text-xs text-muted-foreground mt-2 ml-11">
+                          <Phone className="h-3 w-3" />
+                          <span>{order.customer.phone}</span>
                         </div>
                       </div>
-
-                      {/* Mobile phone */}
-                      <div className="sm:hidden flex items-center gap-1 text-xs text-muted-foreground mt-2 ml-11">
-                        <Phone className="h-3 w-3" />
-                        <span>{order.customer.phone}</span>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8 px-4">

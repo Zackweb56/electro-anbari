@@ -590,8 +590,8 @@ export default function StockPage() {
         </div>
 
         {/* Quick Status Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card className="border-border bg-card">
+        <div className="flex flex-wrap justify-between gap-2 sm:grid sm:grid-cols-3 sm:gap-3">
+          <Card className="flex-1 min-w-[32%] border-border bg-card">
             <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -604,8 +604,8 @@ export default function StockPage() {
               </div>
             </CardContent>
           </Card>
-          
-          <Card className="border-border bg-card">
+
+          <Card className="flex-1 min-w-[32%] border-border bg-card">
             <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -618,8 +618,8 @@ export default function StockPage() {
               </div>
             </CardContent>
           </Card>
-          
-          <Card className="border-border bg-card">
+
+          <Card className="flex-1 min-w-[32%] border-border bg-card">
             <CardContent className="px-3 py-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">

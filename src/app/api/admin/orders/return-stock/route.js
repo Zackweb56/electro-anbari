@@ -8,39 +8,35 @@ import Stock from '@/models/Stock';
 
 export async function POST(request) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     await dbConnect();
     
     const { orderId } = await request.json();
-    
-    // Find the order
     const order = await Order.findById(orderId);
+    
     if (!order) {
+      return NextResponse.json({ error: 'Commande non trouvée' }, { status: 404 });
+    }
+
+    // 🚫 Prevent returning stock for already cancelled orders
+    if (order.status === 'cancelled') {
       return NextResponse.json(
-        { error: 'Commande non trouvée' },
-        { status: 404 }
+        { error: 'Le stock a déjà été retourné pour cette commande annulée' },
+        { status: 400 }
       );
     }
 
     // Return stock for each item
     for (const item of order.items) {
       const stock = await Stock.findOne({ product: item.product });
-      
       if (stock) {
-        // Return the quantity back to stock
         stock.currentQuantity += item.quantity;
-        stock.soldQuantity -= item.quantity;
-        
+        stock.soldQuantity = Math.max(0, stock.soldQuantity - item.quantity);
         await stock.save();
-        console.log(`Returned ${item.quantity} units of product ${item.product} to stock`);
       }
     }
 

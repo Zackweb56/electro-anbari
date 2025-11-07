@@ -15,7 +15,7 @@ export function DataTable({
   columns,
   data,
   searchKey,
-  onView,   // 👈 Added new prop for "View" action
+  onView,
   onEdit,
   onDelete,
 }) {
@@ -29,6 +29,9 @@ export function DataTable({
     const value = getNestedValue(item, searchKey);
     return typeof value === 'string' && value.toLowerCase().includes(search.toLowerCase());
   });
+
+  // Check if any actions are provided to conditionally show the Actions column
+  const hasActions = onView || onEdit || onDelete;
 
   return (
     <div className="space-y-4">
@@ -50,7 +53,10 @@ export function DataTable({
               {columns.map((column) => (
                 <TableHead key={column.key}>{column.header}</TableHead>
               ))}
-              <TableHead className="text-right">Actions</TableHead>
+              {/* Only show Actions column if at least one action is provided */}
+              {hasActions && (
+                <TableHead className="text-right">Actions</TableHead>
+              )}
             </TableRow>
           </TableHeader>
 
@@ -64,42 +70,51 @@ export function DataTable({
                     </TableCell>
                   ))}
 
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      {/* 👁️ View Button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onView(item)}
-                      >
-                        <EyeIcon className="w-4 h-4" />
-                      </Button>
+                  {/* Only show actions cell if at least one action is provided */}
+                  {hasActions && (
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        {/* 👁️ View Button - Only show if onView prop is provided */}
+                        {onView && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onView(item)}
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                          </Button>
+                        )}
 
-                      {/* ✏️ Edit Button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onEdit(item)}
-                      >
-                        <EditIcon className="w-4 h-4" />
-                      </Button>
+                        {/* ✏️ Edit Button - Only show if onEdit prop is provided */}
+                        {onEdit && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onEdit(item)}
+                          >
+                            <EditIcon className="w-4 h-4" />
+                          </Button>
+                        )}
 
-                      {/* 🗑️ Delete Button */}
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => onDelete(item)}
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                        {/* 🗑️ Delete Button - Only show if onDelete prop is provided */}
+                        {onDelete && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => onDelete(item)}
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length + 1}
+                  colSpan={columns.length + (hasActions ? 1 : 0)}
                   className="text-center py-8"
                 >
                   <div className="text-muted-foreground">

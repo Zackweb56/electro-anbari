@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import Stock from "@/models/Stock";
 import Product from "@/models/Product";
+import Order from "@/models/Order";
 await connectDB();
 
 // � GET - Fetch single stock item
@@ -102,6 +103,18 @@ export async function DELETE(request, { params }) {
       return Response.json({ error: "Non autorisé" }, { status: 401 });
 
     await connectDB();
+
+    // Check if there are any active orders (not cancelled) that reference this stock
+    const activeOrdersCount = await Order.countDocuments({
+      'items.product': params.id,
+      status: { $ne: 'cancelled' }
+    });
+
+    if (activeOrdersCount > 0) {
+      return Response.json({
+        error: `Impossible de supprimer ce stock car il y a ${activeOrdersCount} commande(s) active(s) qui le référencent. Annulez d'abord les commandes concernées.`
+      }, { status: 400 });
+    }
 
     const stock = await Stock.findByIdAndDelete(params.id);
     if (!stock)

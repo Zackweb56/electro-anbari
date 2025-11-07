@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
+import Stock from '@/models/Stock';
 
 export async function PUT(request, { params }) {
   try {
@@ -10,12 +11,7 @@ export async function PUT(request, { params }) {
     const { id } = params;
     const body = await request.json();
     
-    const order = await Order.findByIdAndUpdate(
-      id,
-      { $set: body },
-      { new: true, runValidators: true }
-    ).populate('items.product', 'name images');
-
+    const order = await Order.findById(id);
     if (!order) {
       return NextResponse.json(
         { error: 'Commande non trouvée' },
@@ -23,7 +19,35 @@ export async function PUT(request, { params }) {
       );
     }
 
-    return NextResponse.json(order);
+    // 🚫 PREVENT changing status if order is already cancelled
+    if (body.status && order.status === 'cancelled' && body.status !== 'cancelled') {
+      return NextResponse.json(
+        { error: 'Impossible de modifier le statut d\'une commande annulée' },
+        { status: 400 }
+      );
+    }
+
+    // Handle status change TO cancelled (return stock)
+    if (body.status === 'cancelled' && order.status !== 'cancelled') {
+      // Return stock for each item
+      for (const item of order.items) {
+        const stock = await Stock.findOne({ product: item.product });
+        if (stock) {
+          stock.currentQuantity += item.quantity;
+          stock.soldQuantity = Math.max(0, stock.soldQuantity - item.quantity);
+          await stock.save();
+        }
+      }
+    }
+
+    // Update the order
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id,
+      { $set: body },
+      { new: true, runValidators: true }
+    ).populate('items.product', 'name images');
+
+    return NextResponse.json(updatedOrder);
   } catch (error) {
     console.error('Error updating order:', error);
     return NextResponse.json(
@@ -48,18 +72,19 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Return stock before deleting the order
-    for (const item of order.items) {
-      const stock = await Stock.findOne({ product: item.product });
-      
-      if (stock) {
-        stock.currentQuantity += item.quantity;
-        stock.soldQuantity -= item.quantity;
-        await stock.save();
+    // Return stock only if order was NOT cancelled
+    if (order.status !== 'cancelled') {
+      for (const item of order.items) {
+        const stock = await Stock.findOne({ product: item.product });
+        if (stock) {
+          stock.currentQuantity += item.quantity;
+          stock.soldQuantity = Math.max(0, stock.soldQuantity - item.quantity);
+          await stock.save();
+        }
       }
     }
 
-    // Now delete the order
+    // Delete the order
     await Order.findByIdAndDelete(id);
 
     return NextResponse.json({ message: 'Commande supprimée avec succès' });
