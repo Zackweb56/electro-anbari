@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Package, 
-  ShoppingCart, 
-  TrendingUp, 
+import {
+  Package,
+  ShoppingCart,
+  TrendingUp,
   AlertTriangle,
   ArrowUpRight,
   CheckCircle,
@@ -26,7 +26,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
+    // Add a small delay to ensure session is fully loaded
+    const timer = setTimeout(() => {
+      fetchDashboardData();
+    }, 200);
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchDashboardData = async () => {
@@ -47,6 +51,8 @@ export default function DashboardPage() {
   const {
     monthlyOrders = 0,
     monthlyRevenue = 0,
+    revenueTrend = 0, // 🟢 Add this
+    ordersTrend = 0,  // 🟢 Add this
     lowStockItems = 0,
     outOfStockItems = 0,
     pendingOrders = 0,
@@ -60,20 +66,20 @@ export default function DashboardPage() {
       value: `${monthlyRevenue.toLocaleString('fr-MA')} MAD`,
       icon: Wallet,
       description: 'Ce mois',
-      trend: '+12%',
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-100 dark:bg-emerald-900/40',
-      badgeColor: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+      trend: `${revenueTrend >= 0 ? '+' : ''}${revenueTrend}%`, // 🟢 Real trend
+      color: revenueTrend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
+      bgColor: revenueTrend >= 0 ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-red-100 dark:bg-red-900/40',
+      badgeColor: revenueTrend >= 0 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/20 text-red-600 dark:text-red-400',
     },
     {
       title: 'Commandes Mensuelles',
       value: monthlyOrders.toLocaleString('fr-MA'),
       icon: ShoppingCart,
       description: 'Commandes ce mois',
-      trend: '+5%',
-      color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-100 dark:bg-blue-900/40',
-      badgeColor: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
+      trend: `${ordersTrend >= 0 ? '+' : ''}${ordersTrend}%`, // 🟢 Real trend
+      color: ordersTrend >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400',
+      bgColor: ordersTrend >= 0 ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-red-100 dark:bg-red-900/40',
+      badgeColor: ordersTrend >= 0 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-red-500/20 text-red-600 dark:text-red-400',
     },
     {
       title: 'Commandes en Attente',
@@ -115,7 +121,7 @@ export default function DashboardPage() {
       delivered: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',
       cancelled: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',
     };
-    
+
     const statusLabels = {
       pending: 'En Attente',
       confirmed: 'Confirmée',
@@ -169,7 +175,7 @@ export default function DashboardPage() {
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
               </CardHeader>
-              
+
               <CardContent className="p-0 flex flex-col flex-grow justify-end">
                 {loading ? (
                   <div className="space-y-2">

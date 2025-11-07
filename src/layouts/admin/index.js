@@ -19,6 +19,7 @@ export default function AdminLayout({ children }) {
       router.push('/admin/login');
       return;
     }
+    // Force re-render when session becomes available
   }, [session, status, router]);
 
   if (status === 'loading') {
@@ -48,21 +49,21 @@ export default function AdminLayout({ children }) {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <AdminSidebar 
-        isMobileOpen={isMobileMenuOpen} 
-        onClose={closeMobileMenu} 
+      <AdminSidebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={closeMobileMenu}
       />
-      
+
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col lg:ml-0 min-w-0">
         {/* Header */}
         <AdminHeader onMenuToggle={toggleMobileMenu} />
-        
+
         {/* Main Content */}
         <AdminMain>
           {children}
         </AdminMain>
-        
+
         {/* Footer */}
         <AdminFooter />
       </div>

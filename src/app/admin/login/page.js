@@ -17,7 +17,7 @@ export default function AdminLogin() {
   // Redirect if already authenticated
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     if (session) {
       router.push('/admin/dashboard');
     }
@@ -38,7 +38,8 @@ export default function AdminLogin() {
       if (result?.error) {
         setError('Email ou mot de passe incorrect');
       } else {
-        router.push('/admin/dashboard');
+        // Force a page reload to ensure session is properly loaded
+        window.location.href = '/admin/dashboard';
       }
     } catch (error) {
       setError('Une erreur est survenue. Veuillez réessayer.');
@@ -82,7 +83,7 @@ export default function AdminLogin() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="admin@electro-anbari.com"
+                placeholder="example@gmail.com"
                 required
                 disabled={loading}
               />
@@ -98,16 +99,16 @@ export default function AdminLogin() {
                 disabled={loading}
               />
             </div>
-            
+
             {error && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
                 {error}
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={loading}
             >
               {loading ? (

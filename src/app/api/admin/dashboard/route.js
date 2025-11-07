@@ -16,29 +16,103 @@ export async function GET() {
 
     await connectDB();
 
-    // Get current month range
+    // Get date ranges
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Current month
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Previous month
+    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    // Monthly orders and revenue (excluding cancelled orders)
-    const monthlyOrdersData = await Order.aggregate([
+    // 🟢 CURRENT MONTH REVENUE
+    const currentMonthRevenueData = await Stock.aggregate([
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'product',
+          foreignField: '_id',
+          as: 'productInfo'
+        }
+      },
+      {
+        $unwind: '$productInfo'
+      },
       {
         $match: {
-          createdAt: { $gte: startOfMonth, $lte: endOfMonth },
-          status: { $ne: 'cancelled' }
+          updatedAt: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth },
+          soldQuantity: { $gt: 0 }
         }
       },
       {
         $group: {
           _id: null,
-          totalOrders: { $sum: 1 },
-          totalRevenue: { $sum: '$totalAmount' }
+          totalRevenue: { 
+            $sum: { 
+              $multiply: ['$soldQuantity', '$productInfo.price'] 
+            } 
+          }
         }
       }
     ]);
 
-    const monthlyData = monthlyOrdersData[0] || { totalOrders: 0, totalRevenue: 0 };
+    // 🟢 PREVIOUS MONTH REVENUE
+    const previousMonthRevenueData = await Stock.aggregate([
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'product',
+          foreignField: '_id',
+          as: 'productInfo'
+        }
+      },
+      {
+        $unwind: '$productInfo'
+      },
+      {
+        $match: {
+          updatedAt: { $gte: startOfPreviousMonth, $lte: endOfPreviousMonth },
+          soldQuantity: { $gt: 0 }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { 
+            $sum: { 
+              $multiply: ['$soldQuantity', '$productInfo.price'] 
+            } 
+          }
+        }
+      }
+    ]);
+
+    const currentMonthRevenue = currentMonthRevenueData[0]?.totalRevenue || 0;
+    const previousMonthRevenue = previousMonthRevenueData[0]?.totalRevenue || 0;
+
+    // 🟢 CALCULATE REVENUE TREND
+    const revenueTrend = previousMonthRevenue > 0 
+      ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100
+      : currentMonthRevenue > 0 ? 100 : 0;
+
+    // 🟢 CURRENT MONTH ORDERS
+    const currentMonthOrders = await Order.countDocuments({
+      createdAt: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth },
+      status: { $ne: 'cancelled' }
+    });
+
+    // 🟢 PREVIOUS MONTH ORDERS
+    const previousMonthOrders = await Order.countDocuments({
+      createdAt: { $gte: startOfPreviousMonth, $lte: endOfPreviousMonth },
+      status: { $ne: 'cancelled' }
+    });
+
+    // 🟢 CALCULATE ORDERS TREND
+    const ordersTrend = previousMonthOrders > 0 
+      ? ((currentMonthOrders - previousMonthOrders) / previousMonthOrders) * 100
+      : currentMonthOrders > 0 ? 100 : 0;
 
     // Total active products
     const totalProducts = await Product.countDocuments({ isActive: true });
@@ -104,8 +178,10 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      monthlyOrders: monthlyData.totalOrders,
-      monthlyRevenue: monthlyData.totalRevenue || 0,
+      monthlyOrders: currentMonthOrders,
+      monthlyRevenue: currentMonthRevenue,
+      revenueTrend: Math.round(revenueTrend), // 🟢 Added trend percentage
+      ordersTrend: Math.round(ordersTrend),   // 🟢 Added trend percentage
       totalProducts,
       pendingOrders,
       lowStockItems,
