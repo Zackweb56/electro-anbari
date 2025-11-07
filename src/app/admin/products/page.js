@@ -184,54 +184,58 @@ export default function ProductsPage() {
   // DataTable columns configuration
   const columns = [
     {
-      key: 'mainImage',
-      header: 'Image',
+      key: 'product',
+      header: 'Produit',
       cell: (product) => (
-        product.mainImage ? (
-          <Image 
-            src={product.mainImage} 
-            alt={product.name}
-            width={40}
-            height={40}
-            className="w-10 h-10 rounded-md object-cover"
-          />
-        ) : product.images && product.images.length > 0 ? (
-          <Image 
-            src={product.images[0]} 
-            alt={product.name}
-            width={40}
-            height={40}
-            className="w-10 h-10 rounded-md object-cover"
-          />
-        ) : (
-          <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center">
-            <ImageIcon className="w-5 h-5 text-muted-foreground" />
+        <div className="flex items-center space-x-3 max-w-[280px]">
+          {product.mainImage || (product.images && product.images.length > 0) ? (
+            <Image 
+              src={product.mainImage || product.images[0]} 
+              alt={product.name}
+              width={40}
+              height={40}
+              className="w-10 h-10 rounded-md object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center flex-shrink-0">
+              <PackageIcon className="w-5 h-5 text-muted-foreground" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="font-medium text-sm truncate leading-tight" title={product.name}>
+              {product.name}
+            </div>
+            <div className="text-[10px] text-muted-foreground truncate leading-tight">
+              SKU: {product.sku || 'N/A'}
+            </div>
+            <div className="text-xs text-blue-600 font-semibold leading-tight">
+              {product.price} MAD
+            </div>
           </div>
-        )
+        </div>
       ),
-    },
-    {
-      key: 'name',
-      header: 'Nom',
     },
     {
       key: 'brand',
       header: 'Marque',
-      cell: (product) => product.brand?.name || 'N/A',
+      cell: (product) => (
+        <div className="text-sm text-muted-foreground">
+          {product.brand?.name || 'N/A'}
+        </div>
+      ),
     },
     {
       key: 'category',
       header: 'Catégorie',
-      cell: (product) => product.category?.name || 'N/A',
-    },
-    {
-      key: 'price',
-      header: 'Prix',
-      cell: (product) => `${product.price} MAD`,
+      cell: (product) => (
+        <div className="text-sm text-muted-foreground">
+          {product.category?.name || 'N/A'}
+        </div>
+      ),
     },
     {
       key: 'stockCount',
-      header: 'Stock Associé',
+      header: 'Stock',
       cell: (product) => (
         <Badge 
           variant={product.stockCount > 0 ? "default" : "secondary"}

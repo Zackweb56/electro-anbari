@@ -328,13 +328,13 @@ export default function StockPage() {
         }
         
         return (
-          <div className="flex items-center space-x-3 min-w-[200px]">
+          <div className="flex items-center space-x-3 max-w-[280px]">
             {product.mainImage || product.images?.[0] ? (
               <Image 
                 src={product.mainImage || product.images[0]} 
                 alt={product.name}
-                width={40}
-                height={40}
+                width={48}
+                height={48}
                 className="w-10 h-10 rounded-md object-cover flex-shrink-0"
               />
             ) : (
@@ -342,13 +342,15 @@ export default function StockPage() {
                 <PackageIcon className="w-5 h-5 text-muted-foreground" />
               </div>
             )}
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-sm truncate">{product.name}</div>
-              <div className="text-[10px] text-muted-foreground truncate">
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="font-medium text-sm truncate leading-tight" title={product.name}>
+                {product.name}
+              </div>
+              <div className="text-[10px] text-muted-foreground truncate leading-tight">
                 SKU: {product.sku || 'N/A'}
               </div>
-              <div className="text-xs text-blue-600 font-medium">
-                {product.price?.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD' })}
+              <div className="text-xs text-blue-600 font-semibold leading-tight">
+                {product.price} MAD
               </div>
             </div>
           </div>
