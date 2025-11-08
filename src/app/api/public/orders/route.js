@@ -10,7 +10,6 @@ export async function POST(request) {
     await dbConnect();
     
     const body = await request.json();
-    console.log('Received order data:', body);
 
     const { customer, items, notes, whatsappConfirmed, shippingNotes, customerWhatsappConfirmed } = body;
 
@@ -54,8 +53,6 @@ export async function POST(request) {
           );
         }
 
-        console.log(`Stock for ${product.name}:`, stock.currentQuantity, 'Requested:', item.quantity);
-
         if (stock.currentQuantity < item.quantity) {
           return NextResponse.json(
             { error: `Stock insuffisant pour le produit: ${product.name}. Stock disponible: ${stock.currentQuantity}` },
@@ -92,8 +89,6 @@ export async function POST(request) {
         stock.soldQuantity += item.quantity;
         
         await stock.save();
-        
-        console.log(`Updated stock for ${item.productId}: ${oldQuantity} -> ${stock.currentQuantity}`);
       }
     }
 

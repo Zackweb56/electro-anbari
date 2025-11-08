@@ -16,16 +16,7 @@ async function testConnection() {
     console.log('✅ MongoDB connection successful!');
     process.exit(0);
   } catch (error) {
-    console.error('❌ MongoDB connection failed:', error.message);
-    
-    // More detailed error information
-    if (error.message.includes('whitelist')) {
-      console.log('\n💡 Solution: Add your IP to MongoDB Atlas whitelist:');
-      console.log('1. Go to MongoDB Atlas → Network Access');
-      console.log('2. Click "Add IP Address"');
-      console.log('3. Click "Add Current IP Address"');
-      console.log('4. Wait 2-5 minutes for changes to apply\n');
-    }
+    console.error('❌ MongoDB connection failed:');
     
     process.exit(1);
   }

@@ -77,7 +77,6 @@ export default function StockPage() {
       const response = await fetch('/api/admin/stock');
       if (response.ok) {
         const data = await response.json();
-        console.log('Stock data:', data);
         setStock(data);
       } else {
         console.error('Failed to fetch stock:', response.status);
@@ -96,7 +95,6 @@ export default function StockPage() {
       const response = await fetch('/api/admin/products');
       if (response.ok) {
         const data = await response.json();
-        console.log('Products data:', data);
         setProducts(data);
       }
     } catch (error) {
@@ -150,8 +148,6 @@ export default function StockPage() {
         isActive: createFormData.isActive,
       };
 
-      console.log('Creating stock:', submitData);
-
       const response = await fetch('/api/admin/stock', {
         method: 'POST',
         headers: {
@@ -161,7 +157,6 @@ export default function StockPage() {
       });
 
       const data = await response.json();
-      console.log('Create response:', data);
 
       if (response.ok) {
         toast.success('Stock créé avec succès');
@@ -198,8 +193,6 @@ export default function StockPage() {
         currentQuantity: newCurrentQuantity,
       };
 
-      console.log('Updating stock with new sales:', submitData);
-
       const response = await fetch(`/api/admin/stock/${selectedStock._id}`, {
         method: 'PUT',
         headers: {
@@ -209,7 +202,6 @@ export default function StockPage() {
       });
 
       const data = await response.json();
-      console.log('Update response:', data);
 
       if (response.ok) {
         toast.success(`${newSales} vente(s) WhatsApp ajoutée(s) avec succès`);
@@ -275,7 +267,6 @@ export default function StockPage() {
 
   // NEW: Open edit dialog with sales data
   const openEditDialog = (stockItem) => {
-    console.log('Editing stock item:', stockItem);
     setSelectedStock(stockItem);
     setEditFormData({
       newSales: 0, // Start with 0 new sales

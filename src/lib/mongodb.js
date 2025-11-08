@@ -17,7 +17,6 @@ export default async function connectDB() {
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    console.log('🟡 Connecting to MongoDB...');
     const opts = {
       bufferCommands: false,
       dbName: 'electro_anbari_db', 
@@ -26,10 +25,6 @@ export default async function connectDB() {
     cached.promise = mongoose
       .connect(MONGODB_URI, opts)
       .then((mongoose) => {
-        console.log('✅ MongoDB connected!');
-        console.log('Host:', mongoose.connection.host);
-        console.log('Database:', mongoose.connection.name);
-
         // ✅ Force register all models once globally
         import('@/models/Admin');
         import('@/models/Brand');

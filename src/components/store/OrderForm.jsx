@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -103,8 +102,6 @@ export default function OrderForm({ cartItems, onOrderSuccess }) {
           quantity: item.quantity
         }))
       };
-
-      console.log('Sending order data:', orderData);
 
       const response = await fetch('/api/public/orders', {
         method: 'POST',

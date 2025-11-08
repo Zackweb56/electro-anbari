@@ -380,8 +380,6 @@ export default function BrandsPage() {
                         width={80}
                         height={80}
                         className="w-20 h-20 object-cover rounded-md"
-                        onLoad={() => console.log('Image loaded')}
-                        onError={() => console.log('Image failed to load')}
                       />
                     </div>
                     <button

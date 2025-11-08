@@ -230,8 +230,8 @@ export default function QuickViewModal({
             )}
 
             {product?.isFeatured && (
-              <div className="absolute top-2 sm:top-4 right-10 sm:right-16 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1 shadow-lg">
-                <Star className="w-2 h-2 sm:w-3 sm:h-3 fill-current" /> Populaire
+              <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-yellow-500 text-white text-xs font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1 shadow-lg">
+                Populaire
               </div>
             )}
           </div>

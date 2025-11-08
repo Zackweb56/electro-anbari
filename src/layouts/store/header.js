@@ -19,7 +19,6 @@ export default function StoreHeader() {
   const [searchSuggestions, setSearchSuggestions] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
-  // const [searchTimeout, setSearchTimeout] = useState(null)
   const searchTimeoutRef = useRef(null)
   const searchInputRef = useRef(null)
   const searchDropdownRef = useRef(null)
@@ -78,9 +77,8 @@ export default function StoreHeader() {
     }
   }, []);
 
-  // Debounced search effect - PROPERLY FIXED VERSION
+  // Debounced search effect
   useEffect(() => {
-    // Clear any existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -94,13 +92,12 @@ export default function StoreHeader() {
       setShowSearchDropdown(false);
     }
 
-    // Cleanup function
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery, searchProducts]); // searchTimeoutRef is stable, no need to include
+  }, [searchQuery, searchProducts]);
 
   // Listen for cart updates
   useEffect(() => {
@@ -120,12 +117,10 @@ export default function StoreHeader() {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Close categories dropdown
       if (!event.target.closest('.categories-dropdown')) {
         setIsCategoriesOpen(false)
       }
       
-      // Close search dropdown
       if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target) &&
           searchInputRef.current && !searchInputRef.current.contains(event.target)) {
         setShowSearchDropdown(false)
@@ -385,9 +380,9 @@ export default function StoreHeader() {
                 )}
               </div>
 
-              {/* Cart - Desktop Only */}
+              {/* Cart Icon - Visible on all screens */}
               <button 
-                className="hidden sm:flex p-2 text-gray-600 hover:text-blue-600 transition-colors relative"
+                className="p-2 text-gray-600 hover:text-blue-600 transition-colors relative"
                 onClick={() => setIsCartOpen(true)}
               >
                 <FaShoppingCart className="w-5 h-5" />
@@ -537,7 +532,7 @@ export default function StoreHeader() {
                 </div>
               </div>
 
-              {/* Mobile Cart Button */}
+              {/* Mobile Cart Button - Optional since cart icon is now always visible */}
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <button 
                   onClick={() => {

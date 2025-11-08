@@ -9,7 +9,7 @@ import {
   FaEye
 } from 'react-icons/fa';
 
-export default function ProductsSlider({ products, autoPlay = true, interval = 4000 }) {
+export default function ProductsSlider({ products, autoPlay = true, interval = 6000 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [productsPerView, setProductsPerView] = useState(4); // Default for desktop
 

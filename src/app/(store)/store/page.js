@@ -52,8 +52,6 @@ function StoreContent() {
           return hasStock && isActive;
         });
 
-        console.log(`Total products: ${productsArray.length}, Available: ${availableProducts.length}`);
-
         setProducts(availableProducts);
         setCategories(categoriesArray);
         setBrands(brandsArray);

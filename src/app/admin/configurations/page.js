@@ -40,7 +40,6 @@ export default function StoreConfigurations() {
       const response = await fetch('/api/admin/config');
       if (response.ok) {
         const data = await response.json();
-        console.log('Fetched config:', data); // Debug log
         setConfig(prev => ({ 
           ...prev, 
             ...data,
@@ -88,8 +87,6 @@ export default function StoreConfigurations() {
         returnPolicy: config.returnPolicy,
       };
 
-      console.log('Sending config data:', configData); // Debug log
-
       const response = await fetch('/api/admin/config', {
         method: 'PUT',
         headers: {
@@ -99,7 +96,6 @@ export default function StoreConfigurations() {
       });
 
       const data = await response.json();
-      console.log('API response:', data); // Debug log
 
       if (response.ok) {
         setMessage({ type: 'success', text: 'Configuration sauvegardée avec succès' });

@@ -46,8 +46,6 @@ async function getLatestProducts(limit = 5) {
       return hasStock && isActive;
     });
 
-    console.log(`Latest products: Total ${productsArray.length}, Available: ${availableProducts.length}`);
-    
     return availableProducts;
   } catch (error) {
     console.error('Error fetching latest products:', error);
@@ -76,8 +74,6 @@ async function getDiscountedProducts() {
       return hasStock && hasDiscount && isActive;
     });
 
-    console.log(`Discounted products: Total ${productsArray.length}, Discounted & Available: ${discountedProducts.length}`);
-    
     return discountedProducts;
   } catch (error) {
     console.error('Error fetching discounted products:', error);
@@ -269,7 +265,7 @@ export default async function HomePage() {
             <ProductsSlider 
               products={safeDiscountedProducts} 
               autoPlay={true}
-              interval={3000}
+              interval={6000}
             />
           </div>
         </section>
@@ -297,7 +293,7 @@ export default async function HomePage() {
             <ProductsSlider 
               products={safeFeaturedProducts.slice(0, 8)} 
               autoPlay={true}
-              interval={4000}
+              interval={6000}
             />
           </div>
         </section>
@@ -325,7 +321,7 @@ export default async function HomePage() {
             <ProductsSlider 
               products={safeLatestProducts} 
               autoPlay={true}
-              interval={3500}
+              interval={6000}
             />
           </div>
         </section>

@@ -17,7 +17,7 @@ import {
   Battery,
   Keyboard,
   Smartphone,
-  Star // Add Star icon for featured badge
+  Star
 } from 'lucide-react';
 import WhatsAppOrderButton from '@/components/store/WhatsAppOrderButton';
 import AddToCartButton from '@/components/store/AddToCartButton';
@@ -43,6 +43,11 @@ export default function ProductDetailPage() {
         
         if (data.success) {
           setProduct(data.product);
+          // Initialize quantity based on available stock
+          const currentStock = data.product?.stock?.currentQuantity || 0;
+          if (currentStock === 0) {
+            setQuantity(0);
+          }
         } else {
           setError(data.error || 'Produit non trouvé');
         }
@@ -58,6 +63,27 @@ export default function ProductDetailPage() {
       fetchProduct();
     }
   }, [params.slug]);
+
+  // Update quantity based on stock availability
+  const updateQuantity = (newQuantity) => {
+    if (!product) return;
+
+    const currentStock = product.stock?.currentQuantity || 0;
+    
+    // Don't allow quantity less than 1 if product is in stock
+    if (newQuantity < 1) {
+      setQuantity(1);
+      return;
+    }
+
+    // Don't allow quantity more than available stock
+    if (newQuantity > currentStock) {
+      setQuantity(currentStock);
+      return;
+    }
+
+    setQuantity(newQuantity);
+  };
 
   const handleMouseMove = (e) => {
     if (!isZoomed) return;
@@ -148,13 +174,15 @@ export default function ProductDetailPage() {
   const getWhatsAppMessage = () => {
     if (!product) return '';
     
+    const currentStock = product.stock?.currentQuantity || 0;
+    
     return (
       `Bonjour, je souhaite commander ce produit :\n` +
       `Nom: ${product.name}\n` +
       `Prix: ${product.price} MAD\n` +
       (product.comparePrice ? `Prix de comparaison: ${product.comparePrice} MAD\n` : '') +
-      (product.stock && product.stock.currentQuantity !== undefined ? `Quantité en stock: ${product.stock.currentQuantity}\n` : '') +
-      `Quantité: ${quantity}\n` +
+      `Quantité en stock: ${currentStock}\n` +
+      `Quantité demandée: ${quantity}\n` +
       `Lien produit: ${typeof window !== 'undefined' ? window.location.href : ''}`
     );
   };
@@ -193,7 +221,8 @@ export default function ProductDetailPage() {
   const hasSpecs = Object.keys(validSpecs).length > 0;
   const discount = product.comparePrice ? Math.round((1 - product.price / product.comparePrice) * 100) : 0;
   const stockStatus = getStockStatus();
-  const canAddToCart = product.stock?.status !== 'out_of_stock';
+  const currentStock = product.stock?.currentQuantity || 0;
+  const canAddToCart = product.stock?.status !== 'out_of_stock' && currentStock > 0;
 
   return (
     <div className="min-h-screen bg-white">
@@ -228,6 +257,7 @@ export default function ProductDetailPage() {
               <Image
                 width={600}
                 height={600}
+                loading="lazy"
                 src={images[selectedImage] || '/placeholder.png'}
                 alt={product.name}
                 className="w-full h-full object-contain p-8 transition-transform duration-200"
@@ -267,7 +297,7 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Featured Badge - Added here */}
+              {/* Featured Badge */}
               {product.isFeatured && (
                 <div className="absolute top-16 left-4 bg-yellow-400 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg">
                   Populaire
@@ -291,6 +321,7 @@ export default function ProductDetailPage() {
                     <Image
                       width={80}
                       height={80}
+                      loading="lazy"
                       src={image}
                       alt={`${product.name} ${index + 1}`}
                       className="w-full h-full object-contain p-2 bg-gray-50"
@@ -311,6 +342,7 @@ export default function ProductDetailPage() {
                     <Image
                       width={40}
                       height={40}
+                      loading="lazy"
                       src={product.brand.logo}
                       alt={product.brand.name}
                       className="w-12 sm:h-12 object-contain"
@@ -379,8 +411,9 @@ export default function ProductDetailPage() {
               <span className="text-sm font-medium text-gray-700">Quantité:</span>
               <div className="flex items-center border border-gray-300 rounded-lg">
                 <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-3 lg:px-4 py-2 hover:bg-gray-50 transition-colors text-lg font-medium"
+                  onClick={() => updateQuantity(quantity - 1)}
+                  disabled={quantity <= 1}
+                  className="px-3 lg:px-4 py-2 hover:bg-gray-50 transition-colors text-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   -
                 </button>
@@ -388,21 +421,49 @@ export default function ProductDetailPage() {
                   {quantity}
                 </span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="px-3 lg:px-4 py-2 hover:bg-gray-50 transition-colors text-lg font-medium"
+                  onClick={() => updateQuantity(quantity + 1)}
+                  disabled={quantity >= currentStock}
+                  className="px-3 lg:px-4 py-2 hover:bg-gray-50 transition-colors text-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   +
                 </button>
               </div>
+              {currentStock > 0 && (
+                <span className="text-sm text-gray-500">
+                  Maximum: {currentStock}
+                </span>
+              )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            {/* Stock Warning */}
+            {currentStock === 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-700 text-sm font-medium">
+                  Ce produit est actuellement en rupture de stock.
+                </p>
+              </div>
+            )}
+
+            {currentStock > 0 && currentStock < 5 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <p className="text-orange-700 text-sm font-medium">
+                  Stock faible! Seulement {currentStock} unité{currentStock > 1 ? 's' : ''} disponible{currentStock > 1 ? 's' : ''}.
+                </p>
+              </div>
+            )}
+
+            {/* Action Buttons - Side by side with content-based width */}
+            <div className="flex flex-row flex-wrap gap-2 sm:gap-3">
               {/* WhatsApp Button */}
               <WhatsAppOrderButton
-                label="Commander via WhatsApp"
+                label={canAddToCart ? "Commander via WhatsApp" : "Produit indisponible"}
                 message={getWhatsAppMessage()}
-                className="sm:flex-1 text-xs sm:text-sm px-3 py-2 sm:px-5 sm:py-2.5"
+                className={`flex-none text-xs sm:text-sm px-3 py-2 sm:px-5 sm:py-2.5 ${
+                  canAddToCart 
+                    ? "bg-green-600 hover:bg-green-700 text-white" 
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+                disabled={!canAddToCart}
                 size="sm"
               />
               
@@ -411,11 +472,12 @@ export default function ProductDetailPage() {
                 product={product}
                 quantity={quantity}
                 onResult={handleAddToCartResult}
-                className={`text-xs sm:text-sm font-semibold rounded-lg px-3 py-2 sm:px-5 sm:py-2.5 ${
+                className={`flex-none text-xs sm:text-sm font-semibold rounded-lg px-3 py-2 sm:px-5 sm:py-2.5 ${
                   canAddToCart
                     ? "bg-blue-600 hover:bg-blue-700 text-white"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
+                disabled={!canAddToCart}
               />
             </div>
 

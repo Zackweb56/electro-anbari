@@ -41,7 +41,6 @@ export async function POST(request) {
     if (!session) return Response.json({ error: 'Non autorisé' }, { status: 401 });
 
     const body = await request.json();
-    console.log('Received product data:', body);
 
     const { name, description, price, comparePrice, images, mainImage, brand, category, specifications, features, sku, isActive, isFeatured } = body;
 
@@ -90,8 +89,6 @@ export async function POST(request) {
       isActive: isActive !== undefined ? isActive : true,
       isFeatured: isFeatured !== undefined ? isFeatured : false,
     };
-
-    console.log('Product data to create:', productData);
 
     const product = await Product.create(productData);
 

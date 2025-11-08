@@ -157,6 +157,7 @@ export default function ProductCard({ product }) {
                   alt={product.name}
                   width={250}
                   height={180}
+                  loading="lazy"
                   className="w-auto h-full max-h-52 object-contain group-hover:scale-105 transition-transform duration-300"
                   onLoad={handleImageLoad}
                   onError={handleImageError}
