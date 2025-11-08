@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { 
   FaFacebookF, 
   FaInstagram, 
@@ -13,14 +12,11 @@ import {
   FaTruck,
   FaExchangeAlt,
   FaSpinner,
-  FaClock,
-  FaShieldAlt
 } from 'react-icons/fa'
 
 export default function StoreFooter() {
   const [config, setConfig] = useState(null)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
   const currentYear = new Date().getFullYear()
 
   // Charger la configuration
@@ -41,20 +37,6 @@ export default function StoreFooter() {
 
     fetchConfig()
   }, [])
-
-  // Handle hidden admin access
-  const handleAdminAccess = (e) => {
-    // Only works if double-clicking in bottom-left corner
-    const rect = e.currentTarget.getBoundingClientRect()
-    const isBottomLeft = 
-      e.clientX < rect.left + 30 && 
-      e.clientY > rect.bottom - 30
-    
-    if (isBottomLeft && e.detail === 2) {
-      e.preventDefault()
-      router.push('/admin/login')
-    }
-  }
 
   // Liens sociaux avec les URLs de la config
   const socialLinks = [
@@ -102,14 +84,7 @@ export default function StoreFooter() {
   }
 
   return (
-    <footer className="bg-gray-900 text-white relative">
-      {/* Hidden Admin Access Trigger - Invisible spacer in bottom-left corner */}
-      <div 
-        className="absolute bottom-0 left-0 w-8 h-8 cursor-pointer opacity-0"
-        onDoubleClick={handleAdminAccess}
-        title="Double-click for admin access"
-      />
-      
+    <footer className="bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* 4 Colonnes principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
@@ -242,22 +217,26 @@ export default function StoreFooter() {
               <div className="bg-gray-800 rounded-xl p-8 text-center border border-gray-700 hover:border-gray-600 transition-colors">
                 <FaMapMarkerAlt className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400 text-sm mb-2">Localisation à configurer</p>
-                <p className="text-gray-500 text-xs">Ajoutez vos coordonnées dans l&apos;admin</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Copyright avec zone d'accès admin cachée dans le coin inférieur gauche */}
-        <div 
-          className="pt-4 border-t border-gray-800 text-center relative"
-          onDoubleClick={handleAdminAccess}
-        >
+        {/* Copyright */}
+        <div className="pt-4 border-t border-gray-800 text-center">
           <p className="text-gray-400 text-sm">
             &copy; {currentYear} {config?.storeName || 'Electro Anbari'}. Tous droits réservés.
           </p>
           <p className="text-gray-500 text-xs mt-2">
-            Développé par <span className="text-blue-400 font-medium">zackwebdev</span>
+            Développé par{' '}
+            <a 
+              href="https://wa.me/212771615622" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-400 font-medium hover:text-blue-300 transition-colors"
+            >
+              zackwebdev
+            </a>
           </p>
         </div>
       </div>
