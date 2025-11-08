@@ -135,12 +135,18 @@ export default function StockPage() {
     setLoading(true);
 
     try {
+      const initialQuantity = parseInt(createFormData.initialQuantity);
+      const currentQuantity = parseInt(createFormData.currentQuantity);
+      
+      // Calculate sold quantity automatically
+      const soldQuantity = initialQuantity - currentQuantity;
+
       const submitData = {
         product: createFormData.product,
-        initialQuantity: parseInt(createFormData.initialQuantity),
-        currentQuantity: parseInt(createFormData.currentQuantity),
-        soldQuantity: 0,
-        lowStockAlert: 1, // Default to 1 instead of letting admin choose
+        initialQuantity: initialQuantity,
+        currentQuantity: currentQuantity,
+        soldQuantity: soldQuantity, // Calculate automatically
+        lowStockAlert: 1,
         isActive: createFormData.isActive,
       };
 
@@ -185,6 +191,7 @@ export default function StockPage() {
       const submitData = {
         soldQuantity: newSoldQuantity,
         currentQuantity: newCurrentQuantity,
+        initialQuantity: selectedStock.initialQuantity, // Include initial quantity
       };
 
       const response = await fetch(`/api/admin/stock/${selectedStock._id}`, {
@@ -691,39 +698,65 @@ export default function StockPage() {
                   </p>
                 )}
               </div>
-          
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="initialQuantity">Quantité Initiale <span className="text-red-600">*</span></Label>
-                  <Input
-                    id="initialQuantity"
-                    type="number"
-                    min="0"
-                    value={createFormData.initialQuantity}
-                    onChange={(e) => {
-                      const initial = parseInt(e.target.value) || 0;
-                      setCreateFormData(prev => ({ 
-                        ...prev, 
-                        initialQuantity: initial,
-                        currentQuantity: initial
-                      }));
-                    }}
-                    required
-                  />
-                </div>
+        
+              <div className="space-y-2">
+                <Label htmlFor="initialQuantity">Quantité Initiale <span className="text-red-600">*</span></Label>
+                <Input
+                  id="initialQuantity"
+                  type="number"
+                  min="0"
+                  value={createFormData.initialQuantity}
+                  onChange={(e) => {
+                    const initial = parseInt(e.target.value) || 0;
+                    setCreateFormData(prev => ({ 
+                      ...prev, 
+                      initialQuantity: initial,
+                      currentQuantity: initial
+                    }));
+                  }}
+                  required
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="currentQuantity">Quantité Actuelle <span className="text-red-600">*</span></Label>
-                  <Input
-                    id="currentQuantity"
-                    type="number"
-                    min="0"
-                    max={createFormData.initialQuantity}
-                    value={createFormData.currentQuantity}
-                    onChange={(e) => setCreateFormData(prev => ({ ...prev, currentQuantity: parseInt(e.target.value) || 0 }))}
-                    required
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="currentQuantity">
+                  Quantité Actuelle <span className="text-red-600">*</span>
+                                  
+                  {/* Show calculated sold quantity */}
+                  {createFormData.initialQuantity > 0 && (
+                    <div className="inline-flex items-center space-x-1 bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <span className="text-[11px] text-blue-700 dark:text-blue-300">
+                        Vendu
+                      </span>
+                      <span className="text-[11px] font-bold bg-white text-blue-500 px-1 py-0.5 rounded-full min-w-3 text-center">
+                        {createFormData.initialQuantity - createFormData.currentQuantity}
+                      </span>
+                    </div>
+                  )}
+                </Label>
+                <Input
+                  id="currentQuantity"
+                  type="number"
+                  min="0"
+                  max={createFormData.initialQuantity}
+                  value={createFormData.currentQuantity}
+                  onChange={(e) => {
+                    const current = parseInt(e.target.value) || 0;
+                    const initial = createFormData.initialQuantity;
+                    
+                    // Don't allow current quantity to exceed initial quantity
+                    const validatedCurrent = Math.min(current, initial);
+                    
+                    setCreateFormData(prev => ({ 
+                      ...prev, 
+                      currentQuantity: validatedCurrent 
+                    }));
+                  }}
+                  required
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Quantité actuellement disponible (ne peut pas dépasser {createFormData.initialQuantity})
+                </p>
               </div>
 
               {/* Removed lowStockAlert input - now defaults to 1 */}

@@ -38,7 +38,7 @@ export async function PUT(request, { params }) {
       product, 
       initialQuantity, 
       currentQuantity, 
-      soldQuantity, // ADD THIS
+      soldQuantity,
       lowStockAlert, 
       isActive 
     } = await request.json();
@@ -62,9 +62,18 @@ export async function PUT(request, { params }) {
     stock.product = product ?? stock.product;
     stock.initialQuantity = initialQuantity ?? stock.initialQuantity;
     stock.currentQuantity = currentQuantity ?? stock.currentQuantity;
-    stock.soldQuantity = soldQuantity ?? stock.soldQuantity; // ADD THIS
     stock.lowStockAlert = lowStockAlert ?? stock.lowStockAlert;
     stock.isActive = isActive ?? stock.isActive;
+
+    // Handle soldQuantity logic
+    if (soldQuantity !== undefined) {
+      stock.soldQuantity = soldQuantity;
+      // Recalculate currentQuantity to maintain consistency
+      stock.currentQuantity = stock.initialQuantity - stock.soldQuantity;
+    } else if (currentQuantity !== undefined) {
+      // If currentQuantity is updated, recalculate soldQuantity
+      stock.soldQuantity = stock.initialQuantity - stock.currentQuantity;
+    }
 
     // Validate that soldQuantity doesn't exceed initialQuantity
     if (stock.soldQuantity > stock.initialQuantity) {
@@ -72,11 +81,6 @@ export async function PUT(request, { params }) {
         { error: "La quantité vendue ne peut pas dépasser la quantité initiale" },
         { status: 400 }
       );
-    }
-
-    // Auto-calculate currentQuantity if not provided
-    if (currentQuantity === undefined && soldQuantity !== undefined) {
-      stock.currentQuantity = stock.initialQuantity - stock.soldQuantity;
     }
 
     stock.updateStatus();

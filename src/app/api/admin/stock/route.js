@@ -31,7 +31,7 @@ export async function POST(request) {
     if (!session)
       return Response.json({ error: "Non autorisé" }, { status: 401 });
 
-    const { product, initialQuantity, currentQuantity, lowStockAlert, isActive } =
+    const { product, initialQuantity, currentQuantity, soldQuantity, lowStockAlert, isActive } =
       await request.json();
 
     if (!product)
@@ -49,12 +49,15 @@ export async function POST(request) {
         { status: 404 }
       );
 
+    // Always calculate soldQuantity from initial and current to ensure consistency
+    const calculatedSoldQuantity = initialQuantity - currentQuantity;
+
     const stock = await Stock.create({
       product,
       initialQuantity,
       currentQuantity,
-      soldQuantity: 0,
-      lowStockAlert: lowStockAlert ?? 5,
+      soldQuantity: calculatedSoldQuantity, // Always use calculated value
+      lowStockAlert: lowStockAlert ?? 1,
       isActive: isActive ?? true,
     });
 
