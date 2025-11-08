@@ -49,22 +49,21 @@ export default function StockPage() {
   const [stock, setStock] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false); // NEW: Separate create dialog
-  const [editDialogOpen, setEditDialogOpen] = useState(false); // NEW: Separate edit dialog
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedStock, setSelectedStock] = useState(null);
-  const [createFormData, setCreateFormData] = useState({ // NEW: Separate create form
+  const [createFormData, setCreateFormData] = useState({
     product: '',
     initialQuantity: 0,
     currentQuantity: 0,
-    lowStockAlert: 5,
     isActive: true,
   });
-  const [editFormData, setEditFormData] = useState({ // NEW: Separate edit form
-    soldQuantity: 0,
+  const [editFormData, setEditFormData] = useState({
+    newSales: 0,
   });
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState({}); // NEW: Track updating status for each item
+  const [updatingStatus, setUpdatingStatus] = useState({});
 
   useEffect(() => {
     fetchStock();
@@ -103,7 +102,6 @@ export default function StockPage() {
   };
 
   const handleStatusToggle = async (stockItem) => {
-    // Set loading state for this specific item
     setUpdatingStatus(prev => ({ ...prev, [stockItem._id]: true }));
     
     try {
@@ -128,12 +126,10 @@ export default function StockPage() {
     } catch (error) {
       toast.error('Erreur de connexion');
     } finally {
-      // Clear loading state for this item
       setUpdatingStatus(prev => ({ ...prev, [stockItem._id]: false }));
     }
   };
 
-  // NEW: Handle create stock
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -143,8 +139,8 @@ export default function StockPage() {
         product: createFormData.product,
         initialQuantity: parseInt(createFormData.initialQuantity),
         currentQuantity: parseInt(createFormData.currentQuantity),
-        soldQuantity: 0, // Always 0 for new stock
-        lowStockAlert: parseInt(createFormData.lowStockAlert),
+        soldQuantity: 0,
+        lowStockAlert: 1, // Default to 1 instead of letting admin choose
         isActive: createFormData.isActive,
       };
 
@@ -174,7 +170,6 @@ export default function StockPage() {
     }
   };
 
-  // NEW: Handle edit stock (ADD new sales only)
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!selectedStock) return;
@@ -184,7 +179,6 @@ export default function StockPage() {
     try {
       const newSales = parseInt(editFormData.newSales) || 0;
       
-      // Calculate new values
       const newSoldQuantity = (selectedStock.soldQuantity || 0) + newSales;
       const newCurrentQuantity = selectedStock.currentQuantity - newSales;
 
@@ -241,21 +235,18 @@ export default function StockPage() {
     }
   };
 
-  // NEW: Reset create form
   const resetCreateForm = () => {
     setCreateFormData({
       product: '',
       initialQuantity: 0,
       currentQuantity: 0,
-      lowStockAlert: 5,
       isActive: true,
     });
   };
 
-  // NEW: Reset edit form
   const resetEditForm = () => {
     setEditFormData({
-      newSales: 0, // Changed from soldQuantity to newSales
+      newSales: 0,
     });
     setSelectedStock(null);
   };
@@ -265,11 +256,10 @@ export default function StockPage() {
     setCreateDialogOpen(true);
   };
 
-  // NEW: Open edit dialog with sales data
   const openEditDialog = (stockItem) => {
     setSelectedStock(stockItem);
     setEditFormData({
-      newSales: 0, // Start with 0 new sales
+      newSales: 0,
     });
     setEditDialogOpen(true);
   };
@@ -295,20 +285,13 @@ export default function StockPage() {
     
     const status = stockItem.status || 
       (stockItem.currentQuantity === 0 ? 'out_of_stock' : 
-       stockItem.currentQuantity <= (stockItem.lowStockAlert || 5) ? 'low_stock' : 'in_stock');
+       stockItem.currentQuantity <= (stockItem.lowStockAlert || 1) ? 'low_stock' : 'in_stock');
     
     const config = statusConfig[status] || statusConfig.in_stock;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getQuantityColor = (quantity, lowStockAlert) => {
-    if (quantity === 0) return 'text-red-600 font-semibold';
-    if (quantity <= lowStockAlert) return 'text-orange-600 font-semibold';
-    return 'text-green-600';
-  };
-
-  // Enhanced columns for better information display
-   const columns = [
+  const columns = [
     {
       key: 'product',
       header: 'Produit',
@@ -370,7 +353,7 @@ export default function StockPage() {
             <span className={`text-sm font-semibold ${
               stockItem.currentQuantity === 0 
                 ? 'text-red-600' 
-                : stockItem.currentQuantity <= (stockItem.lowStockAlert || 5)
+                : stockItem.currentQuantity <= (stockItem.lowStockAlert || 1)
                 ? 'text-orange-600'
                 : 'text-green-600'
             }`}>
@@ -447,7 +430,7 @@ export default function StockPage() {
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Seuil:</span>
               <span className="text-xs font-medium">
-                {stockItem.lowStockAlert || 5}
+                {stockItem.lowStockAlert || 1}
               </span>
             </div>
           </div>
@@ -456,7 +439,6 @@ export default function StockPage() {
     },
   ];
 
-  // Calculate enhanced stats
   const totalCurrentQuantity = stock.reduce((sum, item) => sum + (item.currentQuantity || 0), 0);
   const totalSoldQuantity = stock.reduce((sum, item) => sum + (item.soldQuantity || 0), 0);
   const totalInitialQuantity = stock.reduce((sum, item) => sum + (item.initialQuantity || 0), 0);
@@ -468,20 +450,19 @@ export default function StockPage() {
   const lowStockItems = stock.filter(s => {
     const status = s.status || 
       (s.currentQuantity === 0 ? 'out_of_stock' : 
-       s.currentQuantity <= (s.lowStockAlert || 5) ? 'low_stock' : 'in_stock');
+       s.currentQuantity <= (s.lowStockAlert || 1) ? 'low_stock' : 'in_stock');
     return status === 'low_stock';
   });
   
   const outOfStockItems = stock.filter(s => {
     const status = s.status || 
       (s.currentQuantity === 0 ? 'out_of_stock' : 
-       s.currentQuantity <= (s.lowStockAlert || 5) ? 'low_stock' : 'in_stock');
+       s.currentQuantity <= (s.lowStockAlert || 1) ? 'low_stock' : 'in_stock');
     return status === 'out_of_stock';
   });
 
   const activeStockItems = stock.filter(s => s.isActive !== false);
 
-  // Filter products that don't already have stock (for create modal)
   const availableProducts = products.filter(product => 
     !stock.some(stockItem => {
       const stockProductId = stockItem.product?._id || stockItem.product;
@@ -724,7 +705,7 @@ export default function StockPage() {
                       setCreateFormData(prev => ({ 
                         ...prev, 
                         initialQuantity: initial,
-                        currentQuantity: initial // Auto-set current to initial
+                        currentQuantity: initial
                       }));
                     }}
                     required
@@ -745,19 +726,7 @@ export default function StockPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="lowStockAlert">Seuil d&apos;Alerte Stock Faible</Label>
-                <Input
-                  id="lowStockAlert"
-                  type="number"
-                  min="1"
-                  value={createFormData.lowStockAlert}
-                  onChange={(e) => setCreateFormData(prev => ({ ...prev, lowStockAlert: parseInt(e.target.value) || 5 }))}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Alerte lorsque le stock atteint cette quantité
-                </p>
-              </div>
+              {/* Removed lowStockAlert input - now defaults to 1 */}
 
               <div className="flex items-center space-x-2">
                 <Switch
@@ -859,7 +828,6 @@ export default function StockPage() {
                     const newSales = parseInt(e.target.value) || 0;
                     const currentStock = selectedStock?.currentQuantity || 0;
                     
-                    // Validate: new sales can't exceed current stock
                     const validatedNewSales = Math.min(newSales, currentStock);
                     
                     setEditFormData({ newSales: validatedNewSales });
@@ -998,7 +966,7 @@ export default function StockPage() {
                   <Info label="Quantité initiale" value={selectedStock.initialQuantity} />
                   <Info label="Quantité actuelle" value={selectedStock.currentQuantity} />
                   <Info label="Quantité vendue" value={selectedStock.soldQuantity || 0} />
-                  <Info label="Seuil alerte" value={selectedStock.lowStockAlert} />
+                  <Info label="Seuil alerte" value={selectedStock.lowStockAlert || 1} />
                 </div>
               </div>
 
@@ -1061,7 +1029,7 @@ export default function StockPage() {
   );
 }
 
-// Add the new icon components
+// Icon components remain the same...
 function TrendingUpIcon(props) {
   return (
     <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1078,7 +1046,6 @@ function CoinsIcon(props) {
   );
 }
 
-// Icon Components (keep the same as before)
 function PlusIcon(props) {
   return (
     <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1091,30 +1058,6 @@ function PackageIcon(props) {
   return (
     <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-    </svg>
-  );
-}
-
-function CheckCircleIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function AlertTriangleIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
-    </svg>
-  );
-}
-
-function XCircleIcon(props) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }
